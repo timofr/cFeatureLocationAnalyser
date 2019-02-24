@@ -1,11 +1,9 @@
 import java.io.BufferedReader;
 import java.io.FileReader;
-import java.lang.reflect.Field;
-import java.lang.reflect.Method;
-import java.util.Arrays;
-import java.util.LinkedHashMap;
+import java.util.List;
 
 import lexer.Lexer;
+import parser.FunctionDefinitionOccurance;
 import parser.Parser;
 
 public class Main {
@@ -30,7 +28,8 @@ public class Main {
 		    Lexer lexer = new Lexer(everything);
 		    Parser parser = new Parser(lexer);
 		    
-		    System.out.println(parser.searchForFunctionRanges());
+		    List<FunctionDefinitionOccurance> functions = parser.searchForFunctionRanges();
+		    functions.forEach(f -> System.out.println(f));
 		}
 		catch(Exception e) {
 			e.printStackTrace();

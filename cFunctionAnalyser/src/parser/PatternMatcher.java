@@ -27,7 +27,7 @@ public class PatternMatcher {
 				}
 			} catch (UnexpectedTokenException e) {
 				oToRemove.add(o);
-			} catch (SingleTokenPattern e) {
+			} catch (SingleTokenPatternException e) {
 				oToRemove.add(o);
 				occurance.add(o);
 				o.setEndLine(o.getStartLine());
