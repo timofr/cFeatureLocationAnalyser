@@ -10,7 +10,8 @@ public class Token {
 		OPERATOR,
 		SEPERATOR,
 		NEWLINE,
-		STRING
+		STRING,
+		CPP
 	}
 	
 	private final TokenType type;
@@ -33,5 +34,32 @@ public class Token {
 	public String getContent() {
 		return this.content;
 	}
-	
+
+	@Override
+	public int hashCode() {
+		final int prime = 31;
+		int result = 1;
+		result = prime * result + ((content == null) ? 0 : content.hashCode());
+		result = prime * result + ((type == null) ? 0 : type.hashCode());
+		return result;
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj)
+			return true;
+		if (obj == null)
+			return false;
+		if (!(obj instanceof Token))
+			return false;
+		Token other = (Token) obj;
+		if (content == null) {
+			if (other.content != null)
+				return false;
+		} else if (!content.equals(other.content))
+			return false;
+		if (type != other.type)
+			return false;
+		return true;
+	}
 }

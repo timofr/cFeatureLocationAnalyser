@@ -9,6 +9,14 @@ import parser.UnexpectedTokenException;
 
 public class FunctionDefinitionPattern extends Pattern {
 	
+	private static Pattern pattern;
+	
+	private FunctionDefinitionPattern() {}
+	
+	public static Pattern getInstance() {
+        return pattern == null ? pattern = new FunctionDefinitionPattern() : pattern;
+	}
+	
 	public boolean match(Token lookahead) {
 		return lookahead.getType() == TokenType.IDENTIFIER;
 	}
@@ -28,12 +36,16 @@ public class FunctionDefinitionPattern extends Pattern {
 			content.add(lookahead);
 			return false;
 		default:
-			if(content.get(content.size() - 1).getContent().contentEquals(")")) {
+			if(content.contains(new Token(TokenType.SEPERATOR, ")"))) {
+				
 				if(lookahead.getContent().equals("{")) {
 					content.add(lookahead);
 					return true;
 				}
-				else
+				
+				else if(!(lookahead.getType() == TokenType.CPP
+						|| lookahead.getType() == TokenType.IDENTIFIER
+						|| lookahead.getType() == TokenType.NEWLINE))
 					throw new UnexpectedTokenException();
 			}
 			content.add(lookahead);

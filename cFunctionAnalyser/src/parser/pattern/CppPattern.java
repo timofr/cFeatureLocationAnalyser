@@ -8,9 +8,10 @@ import parser.PatternOccurance;
 import parser.UnexpectedTokenException;
 
 public abstract class CppPattern extends Pattern {
+	
 	@Override
 	public boolean match(Token lookahead) {
-		return lookahead.getType() == TokenType.OPERATOR && lookahead.getContent().equals("#");
+		return lookahead.getType() == TokenType.CPP;
 	}
 	
 	public boolean processAbstract(PatternOccurance occurance, Token lookahead, String cppName, boolean identifier) throws UnexpectedTokenException {

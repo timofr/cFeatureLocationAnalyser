@@ -1,7 +1,6 @@
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.util.List;
-
 import lexer.Lexer;
 import parser.FunctionDefinitionOccurance;
 import parser.Parser;
@@ -12,7 +11,7 @@ public class Main {
 			System.out.println("Path required");
 			return;
 		}
-		
+
 		try(BufferedReader br = new BufferedReader(new FileReader(args[0]))) {
 			StringBuilder sb = new StringBuilder();
 		    String line = br.readLine();

@@ -4,6 +4,7 @@ import java.util.LinkedHashSet;
 import java.util.Set;
 
 import lexer.Token.TokenType;
+import lexer.instructions.CppInstruction;
 import lexer.instructions.DecimalInstruction;
 import lexer.instructions.IdentifierInstruction;
 import lexer.instructions.LexerInstruction;
@@ -31,6 +32,7 @@ public class Lexer {
 	
 	private void initialize() {
 		this.addInstructions(
+				new CppInstruction(),
 				new IdentifierInstruction(),
 				new NewLineInstruction(),
 				new OperatorInstruction(),
