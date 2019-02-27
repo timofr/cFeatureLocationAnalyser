@@ -2,11 +2,8 @@ package parser;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-
-import javax.swing.text.StyledEditorKit.BoldAction;
 
 public class FunctionAnalyser {
 	private List<FunctionDefinition> functions;
