@@ -2,14 +2,13 @@ package parser;
 
 import java.util.List;
 
-public class FunctionDefinitionOccurance {
+public class FunctionDefinition {
 	private String name;
 	private List<Ifdef> ifdef;
 	private int start;
 	private int end;
-	private int brackets = 0;
 	
-	public FunctionDefinitionOccurance(String name, List<Ifdef> ifdef, int start) {
+	public FunctionDefinition(String name, List<Ifdef> ifdef, int start) {
 		this.name = name;
 		this.ifdef = ifdef;
 		this.start = start;
@@ -29,7 +28,7 @@ public class FunctionDefinitionOccurance {
 		this.name = name;
 	}
 
-	public List<Ifdef> isIfdef() {
+	public List<Ifdef> getIfdef() {
 		return ifdef;
 	}
 
@@ -51,17 +50,5 @@ public class FunctionDefinitionOccurance {
 
 	public void setEnd(int end) {
 		this.end = end;
-	}
-	
-	public int getBrackets() {
-		return this.brackets;
-	}
-	
-	public void incBrackets() {
-		this.brackets++;
-	}
-
-	public void decBrackets() {
-		this.brackets--;
 	}
 }

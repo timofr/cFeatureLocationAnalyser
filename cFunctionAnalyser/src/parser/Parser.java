@@ -3,11 +3,11 @@ package parser;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.Stack;
+import java.util.TreeSet;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
@@ -17,10 +17,12 @@ import lexer.Token;
 import lexer.Token.TokenType;
 import parser.pattern.CloseCurlyBracketPattern;
 import parser.pattern.CppDefinePattern;
+import parser.pattern.CppElifPattern;
 import parser.pattern.CppElsePattern;
 import parser.pattern.CppEndifPattern;
 import parser.pattern.CppIfDefinedPattern;
 import parser.pattern.CppIfdefPattern;
+import parser.pattern.CppIfndefPattern;
 import parser.pattern.FunctionDefinitionPattern;
 import parser.pattern.OpenCurlyBracketPattern;
 import parser.pattern.Pattern;
@@ -38,22 +40,39 @@ public class Parser {
 	private Map<Class<? extends Pattern>, Consumer<PatternOccurance>> handlePattern = 
 			new HashMap<Class<? extends Pattern>, Consumer<PatternOccurance>>();
 	
-	private final List<PatternOccurance> occurances = new LinkedList<PatternOccurance>();
+	private final List<PatternOccurance> occurances = new ArrayList<PatternOccurance>();
 	
-	private List<FunctionDefinitionOccurance> functions = new LinkedList<FunctionDefinitionOccurance>();
+	private List<FunctionDefinition> functions = new ArrayList<FunctionDefinition>();
+	private List<Ifdef> ifdefs = new ArrayList<Ifdef>();
 	
-	private List<FunctionDefinitionOccurance> functionsToAnalyse = new ArrayList<FunctionDefinitionOccurance>();
-	private Stack<Ifdef> ifdef = new Stack<Ifdef>();
-	private Stack<Integer> bracket = new Stack<Integer>();
-	
+	private List<FunctionDefinition> functionsToAnalyse = new ArrayList<FunctionDefinition>();
+	private Stack<Ifdef> ifdefStack = new Stack<Ifdef>();
+	private Stack<Integer> bracketStack = new Stack<Integer>();
+
 	public Parser(Lexer lexer) {
 		this.lexer = lexer;
 		initialize();
 	}
 	
+	public List<FunctionDefinition> getFunctions() {
+		return functions;
+	}
+	
+	public void printFunctionNames() {
+		functions.stream()
+			.map(f -> f.getName())
+			.collect(Collectors.toCollection(TreeSet::new))
+			.forEach(n -> System.out.println(n));
+	}
+
+	public List<Ifdef> getIfdefs() {
+		return ifdefs;
+	}
+	
 	private void initialize() {
-		ifdef.push(new Ifdef("CFILE", false));
-		bracket.push(0);
+		//ifdefStack.push(new Ifdef("CFILE", 1));
+		
+		bracketStack.push(0);
 		
 		this.matchers.add(PatternMatcher.getCppDefinePatternMatcher());
 		this.matchers.add(PatternMatcher.getCppIfdefPatternMatcher());
@@ -73,6 +92,8 @@ public class Parser {
 		this.handlePattern.put(CloseCurlyBracketPattern.class, this::handleCloseCurlyBracketPattern);
 		this.handlePattern.put(FunctionDefinitionPattern.class, this::handleFunctionDefinitionPattern);
 		this.handlePattern.put(CppDefinePattern.class, this::handleNothing);
+		this.handlePattern.put(CppElifPattern.class, this::throwException);
+		this.handlePattern.put(CppIfndefPattern.class, this::throwException); 
 	}
 	
 	private void nextToken() throws LexerException {
@@ -115,72 +136,81 @@ public class Parser {
 			this.nextToken();
 		}
 		
+		//ifdefStack.peek().setEndLine(lineCounter);  // only used if cfile ifdef is used
+		
 		for(PatternMatcher m : matchers) 
 			this.occurances.addAll(m.match(lookahead, lineCounter));
 	}
 	
 	int lastBracket = 0; //avoid inner class access error
 	
-	public List<FunctionDefinitionOccurance> searchForFunctionRanges() throws LexerException {
+	public void determineRanges() throws LexerException {
 		this.parse();
 		
 		for(PatternOccurance po : occurances) {
 			handlePattern.get(po.getPattern().getClass()).accept(po);
 		}
 			
-		assert bracket.peek() == 0 : "Last function got more '{' than '}'";
+		assert bracketStack.peek() == 0 : "Last function got more '{' than '}'";
 		functionsToAnalyse.forEach(f -> f.setEnd(lastBracket));
 		functions.addAll(functionsToAnalyse);
 		functionsToAnalyse.clear();
-		
-		return functions;
 	}
+	
+	//public List<IfdefRange> determineIfDefRanges()
+	
+	
 	
 
 	
 	private void handleFunctionDefinitionPattern(PatternOccurance po) {
-		if(bracket.stream().reduce((a,b) -> a | b).get() == 0) {
+		if(bracketStack.stream().reduce((a,b) -> a | b).get() == 0) {
 			functionsToAnalyse.forEach(f -> f.setEnd(lastBracket));
 			functions.addAll(functionsToAnalyse);
 			functionsToAnalyse.clear();
 		}
 		
-		functionsToAnalyse.add(new FunctionDefinitionOccurance(
+		functionsToAnalyse.add(new FunctionDefinition(
 						po.getContent().get(1).getContent(),
-						ifdef.stream().map(Ifdef::new).collect(Collectors.toList()), //deep copy of ifdef stack to list
+						ifdefStack.stream().map(Ifdef::new).collect(Collectors.toList()), //deep copy of ifdef stack to list
 						po.getStartLine()));
 	}
 	
 	private void handleIfdefPattern(PatternOccurance po) {
-		ifdef.push(new Ifdef(po.getContent().get(2).getContent(), true));
-		bracket.push(bracket.peek());
+		ifdefStack.push(new Ifdef(po.getContent().get(2).getContent(), po.getStartLine()));
+		bracketStack.push(bracketStack.peek());
 	}
 	
 	private void handleIfDefinedPattern(PatternOccurance po) {
-		ifdef.push(new Ifdef(getIfDefinedIdentifier(po.getContent()), true));
-		bracket.push(bracket.peek());
+		ifdefStack.push(new Ifdef(getIfDefinedIdentifier(po.getContent()), po.getStartLine()));
+		bracketStack.push(bracketStack.peek());
 	}
 
 	private void handleElsePattern(PatternOccurance po) {
-		ifdef.peek().setIfdef(false);
-		bracket.push(popAndChangeTop(bracket));
+		ifdefStack.peek().setIfdef(false);
+		ifdefStack.peek().setElseLine(po.getStartLine());
+		bracketStack.push(popAndChangeTop(bracketStack));
 	}
 
 	private void handleEndifPattern(PatternOccurance po) {
-		ifdef.pop();
-		bracket.pop(); //no difference to popAndChangeTop(bracket) noticed
+		ifdefStack.peek().setEndLine(po.getEndLine());
+		ifdefs.add(ifdefStack.pop());
+		bracketStack.pop(); //no difference to popAndChangeTop(bracket) noticed
 		//popAndChangeTop(bracket); //TODO check difference
 	}
 	
 	public void handleOpenCurlyBracketPattern(PatternOccurance po) {
-		changeTopOfStack(bracket, true);
+		changeTopOfStack(bracketStack, true);
 	}
 	
 	public void handleCloseCurlyBracketPattern(PatternOccurance po) {
-		changeTopOfStack(bracket, false);
+		changeTopOfStack(bracketStack, false);
+		lastBracket = po.getEndLine();
 	}
 	
 	public void handleNothing(PatternOccurance po) {}
 
-
+	public void throwException(PatternOccurance po) {
+		throw new RuntimeException("Cant handle " + po);
+	}
 }

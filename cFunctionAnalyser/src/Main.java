@@ -2,17 +2,19 @@ import java.io.BufferedReader;
 import java.io.FileReader;
 import java.util.List;
 import lexer.Lexer;
-import parser.FunctionDefinitionOccurance;
+import parser.FunctionAnalyser;
+import parser.FunctionDefinition;
+import parser.Ifdef;
 import parser.Parser;
 
 public class Main {
 	public static void main(String[] args) {
-		if(args.length == 0) {
-			System.out.println("Path required");
-			return;
-		}
+//		if(args.length == 0) {
+//			System.out.println("Path required");
+//			return;
+//		}
 
-		try(BufferedReader br = new BufferedReader(new FileReader(args[0]))) {
+		try(BufferedReader br = new BufferedReader(new FileReader("C:\\Users\\Timo\\Desktop\\multi.c"))) {
 			StringBuilder sb = new StringBuilder();
 		    String line = br.readLine();
 
@@ -24,11 +26,20 @@ public class Main {
 		    sb.append(Lexer.EOF);
 		    String everything = sb.toString();
 		    
-		    Lexer lexer = new Lexer(everything);
-		    Parser parser = new Parser(lexer);
+		    Parser parser = new Parser(new Lexer(everything));
 		    
-		    List<FunctionDefinitionOccurance> functions = parser.searchForFunctionRanges();
-		    functions.forEach(f -> System.out.println(f));
+		    parser.determineRanges();
+		    List<Ifdef> ifdefs = parser.getIfdefs();
+		    List<FunctionDefinition> functions = parser.getFunctions();
+		    FunctionAnalyser analyser = new FunctionAnalyser(functions, ifdefs);
+		    analyser.analyse();
+		    analyser.printFunctionsIfdefs();
+		    
+		    
+		    
+		    //parser.printFunctionNames();
+		    //ifdefs.forEach(f -> System.out.println(f.rangeToString()));
+		    //functions.forEach(f -> System.out.println(f));
 		}
 		catch(Exception e) {
 			e.printStackTrace();
