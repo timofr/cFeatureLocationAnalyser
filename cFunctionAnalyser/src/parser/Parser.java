@@ -7,7 +7,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.Stack;
-import java.util.TreeSet;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
@@ -45,6 +44,8 @@ public class Parser {
 	private List<FunctionDefinition> functions = new ArrayList<FunctionDefinition>();
 	private List<Ifdef> ifdefs = new ArrayList<Ifdef>();
 	
+	private Map<FunctionDefinition, List<Ifdef>> analysedFunctions = new HashMap<FunctionDefinition, List<Ifdef>>();
+	
 	private List<FunctionDefinition> functionsToAnalyse = new ArrayList<FunctionDefinition>();
 	private Stack<Ifdef> ifdefStack = new Stack<Ifdef>();
 	private Stack<Integer> bracketStack = new Stack<Integer>();
@@ -57,16 +58,17 @@ public class Parser {
 	public List<FunctionDefinition> getFunctions() {
 		return functions;
 	}
-	
-	public void printFunctionNames() {
-		functions.stream()
-			.map(f -> f.getName())
-			.collect(Collectors.toCollection(TreeSet::new))
-			.forEach(n -> System.out.println(n));
-	}
 
 	public List<Ifdef> getIfdefs() {
 		return ifdefs;
+	}
+	
+	public Map<FunctionDefinition, List<Ifdef>> getAnalysedFunctions() {
+		return analysedFunctions;
+	}
+	
+	public List<PatternOccurance> getOccurances() {
+		return occurances;
 	}
 	
 	private void initialize() {
@@ -144,7 +146,7 @@ public class Parser {
 	
 	int lastBracket = 0; //avoid inner class access error
 	
-	public void determineRanges() throws LexerException {
+	private void determineRanges() throws LexerException {
 		this.parse();
 		
 		for(PatternOccurance po : occurances) {
@@ -157,9 +159,27 @@ public class Parser {
 		functionsToAnalyse.clear();
 	}
 	
-	//public List<IfdefRange> determineIfDefRanges()
-	
-	
+	public Map<FunctionDefinition, List<Ifdef>> analyse() throws LexerException {
+		determineRanges();
+		
+		functions.stream()
+			.filter(f -> f.getIfdef().stream().map(id -> id.isIfdef()).reduce(true, Boolean::logicalAnd))
+			.forEach(f -> analysedFunctions.put(f, new ArrayList<Ifdef>()));
+		
+		for(Ifdef i : ifdefs) {
+			for(FunctionDefinition f : functions) {
+				if(i.getElseLine() == -1) {
+					if((f.getStart() > i.getStartLine()) && (f.getEnd() < i.getEndLine()))
+						analysedFunctions.get(f).add(i);
+				} else {
+					if((f.getStart() > i.getStartLine()) && (f.getEnd() < i.getElseLine()))
+						analysedFunctions.get(f).add(i);
+				}
+			}
+		}
+		
+		return analysedFunctions;
+	}
 	
 
 	

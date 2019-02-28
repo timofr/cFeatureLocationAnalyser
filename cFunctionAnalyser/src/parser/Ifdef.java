@@ -63,7 +63,8 @@ public class Ifdef {
 	}
 	
 	public String rangeToString() {
-		return name + " " + startLine + " "  + elseLine + " " + endLine; 
+		return "Ifdef [name=" + name + ", startLine=" + startLine + ", elseLine=" + elseLine + ", endLine=" + endLine
+				+ "]"; 
 	}
 	
 	@Override
