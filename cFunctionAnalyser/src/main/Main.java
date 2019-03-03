@@ -78,11 +78,12 @@ public class Main {
 			Map<Character, Invoker> argsHandle = new HashMap<Character, Invoker>();
 			argsHandle.put('f', printer::printFunctions);
 			argsHandle.put('n', printer::printFunctionNames);
-			argsHandle.put('a', printer::printAnalysedFunction);
+			argsHandle.put('p', printer::printAnalysedFunctionPositive);
+			argsHandle.put('a', printer::printAnalysedFunctionAll);
 			argsHandle.put('o', printer::printPatternOccurances);
 			argsHandle.put('i', printer::printIfdefs);
 			if(options.length() == 0) 
-				printer.printAnalysedFunction();
+				printer.printAnalysedFunctionAll();
 			else
 				stringOptions.chars().forEach(c -> argsHandle.get((char) c).invoke());
 		}
@@ -97,7 +98,8 @@ public class Main {
 	private static void printHelp() {
 		System.out.println("Usage: java -jar cFunctionAnalyser [options] path");
 		System.out.println("-h: show help");
-		System.out.println("-a: (default) show analysed functions");
+		System.out.println("-a: (default) show analysed functions with all ifdefs");
+		System.out.println("-p: show analysed functions with positive ifdefs");
 		System.out.println("-o: show all pattern occurances defined");
 		System.out.println("-n: show all functions names defined");
 		System.out.println("-f: show all functions");

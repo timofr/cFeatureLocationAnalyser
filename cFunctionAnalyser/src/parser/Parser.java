@@ -45,7 +45,7 @@ public class Parser {
 	private List<FunctionDefinition> functions = new ArrayList<FunctionDefinition>();
 	private List<Ifdef> ifdefs = new ArrayList<Ifdef>();
 	
-	private Map<FunctionDefinition, List<Ifdef>> analysedFunctions = new HashMap<FunctionDefinition, List<Ifdef>>();
+	private Map<FunctionDefinition,  Map<Ifdef, Boolean>> analysedFunctions = new HashMap<FunctionDefinition, Map<Ifdef, Boolean>>();
 	
 	private List<FunctionDefinition> functionsToAnalyse = new ArrayList<FunctionDefinition>();
 	private Stack<Ifdef> ifdefStack = new Stack<Ifdef>();
@@ -64,7 +64,7 @@ public class Parser {
 		return ifdefs;
 	}
 	
-	public Map<FunctionDefinition, List<Ifdef>> getAnalysedFunctions() {
+	public Map<FunctionDefinition, Map<Ifdef, Boolean>> getAnalysedFunctions() {
 		return analysedFunctions;
 	}
 	
@@ -77,16 +77,16 @@ public class Parser {
 		
 		bracketStack.push(0);
 		
-//		this.matchers.add(PatternMatcher.getCppDefinePatternMatcher());
+		this.matchers.add(PatternMatcher.getCppDefinePatternMatcher());
 		this.matchers.add(PatternMatcher.getCppIfdefPatternMatcher());
 		this.matchers.add(PatternMatcher.getCppIfDefinedPatternMatcher());
 		this.matchers.add(PatternMatcher.getCppIfndefPatternMatcher());
 		this.matchers.add(PatternMatcher.getCppElsePatternMatcher());
 		this.matchers.add(PatternMatcher.getCppElifPatternMatcher());
 		this.matchers.add(PatternMatcher.getCppEndifPatternMatcher());
-//		this.matchers.add(PatternMatcher.getFunctionDefinitionPatternMatcher());
-//		this.matchers.add(PatternMatcher.getOpenCurlyBracketPatternMatcher());		
-//		this.matchers.add(PatternMatcher.getCloseCurlyBracketPatternMatcher());
+		this.matchers.add(PatternMatcher.getFunctionDefinitionPatternMatcher());
+		this.matchers.add(PatternMatcher.getOpenCurlyBracketPatternMatcher());		
+		this.matchers.add(PatternMatcher.getCloseCurlyBracketPatternMatcher());
 		
 		this.handlePattern.put(CppIfdefPattern.class, this::handleIfdefPattern);
 		this.handlePattern.put(CppIfDefinedPattern.class, this::handleIfDefinedPattern);
@@ -152,9 +152,7 @@ public class Parser {
 		this.parse();
 		
 		for(PatternOccurance po : occurances) {
-			System.out.println(po);
 			handlePattern.get(po.getPattern().getClass()).accept(po);
-			System.out.println(ifdefStack);
 		}
 			
 		assert bracketStack.peek() == 0 : "Last function got more '{' than '}'";
@@ -163,38 +161,48 @@ public class Parser {
 		functionsToAnalyse.clear();
 	}
 	
-	public Map<FunctionDefinition, List<Ifdef>> analyse() throws LexerException {
+	public Map<FunctionDefinition, Map<Ifdef, Boolean>> analyse() throws LexerException {
 		determineRanges();
 		
-//		functions.stream()
-//			.filter(f -> f.getIfdef().stream().map(id -> id.isIfdef()).reduce(true, Boolean::logicalAnd))
-//			.forEach(f -> analysedFunctions.put(f, new ArrayList<Ifdef>()));
-//		
-//		for(Ifdef i : ifdefs) {
-//			System.out.println(i + i.rangeToString());
-//			for(FunctionDefinition f : functions) {
-//				System.out.println(f);
-//				if(i.isN()) {
-//					if(i.getElseLine() != -1) {
-//						if((f.getStart() > i.getStartLine()) && (f.getEnd() < i.getEndLine()))
-//							analysedFunctions.get(f).add(i);
-//					}
-//				}
-//				else {
-//					if(i.getElseLine() == -1) {
-//						if((f.getStart() > i.getStartLine()) && (f.getEnd() < i.getEndLine()))
-//							analysedFunctions.get(f).add(i);
-//					} else {
-//						if((f.getStart() > i.getStartLine()) && (f.getEnd() < i.getElseLine()))
-//							analysedFunctions.get(f).add(i);
-//					}
-//				}
-//				
-//				
-//				
-//			}
-//		}
 		
+		
+		
+		functions.stream()
+//			.filter(f -> f.getIfdef().stream().map(id -> id.isIfdef()).reduce(true, Boolean::logicalAnd))
+			.forEach(f -> analysedFunctions.put(f, new HashMap<Ifdef, Boolean>()));
+		
+		for(Ifdef i : ifdefs) {
+			for(FunctionDefinition f : functions) {
+				if(i.isN()) {
+					if (i.getElseLine() == -1) {
+						if ((f.getStart() > i.getStartLine()) && (f.getEnd() < i.getEndLine()))
+							analysedFunctions.get(f).put(i, false);
+					} else {
+						if ((f.getStart() > i.getStartLine()) && (f.getEnd() < i.getElseLine()))
+							analysedFunctions.get(f).put(i, false);
+						else if((f.getStart() > i.getElseLine()) && (f.getEnd() < i.getEndLine())) {
+							analysedFunctions.get(f).put(i, true);
+						}
+					}
+				}
+				else {
+					if (i.getElseLine() == -1) {
+						if ((f.getStart() > i.getStartLine()) && (f.getEnd() < i.getEndLine()))
+							analysedFunctions.get(f).put(i, true);
+					} else {
+						if ((f.getStart() > i.getStartLine()) && (f.getEnd() < i.getElseLine()))
+							analysedFunctions.get(f).put(i, true);
+						else if((f.getStart() > i.getElseLine()) && (f.getEnd() < i.getEndLine())) {
+							analysedFunctions.get(f).put(i, false);
+						}
+					}
+				}
+				
+				
+				
+			}
+		}
+		System.out.println(analysedFunctions);
 		return analysedFunctions;
 	}
 	

@@ -76,12 +76,12 @@ public class Ifdef {
 	}
 	
 	public String rangeToString() {
-		return "Ifdef [name=" + name + ", startLine=" + startLine + ", elseLine=" + elseLine + ", endLine=" + endLine
+		return "Ifdef [name=" + name + ", n=" + n + ", startLine=" + startLine + ", elseLine=" + elseLine + ", endLine=" + endLine
 				+ "]"; 
 	}
 	
 	@Override
 	public String toString() {
-		return "Ifdef [name=" + name + ", ifdef=" + ifdef + ", n=" + n +"]";
+		return "Ifdef [name=" + name + ", ifdef=" + ifdef +"]";
 	}
 }

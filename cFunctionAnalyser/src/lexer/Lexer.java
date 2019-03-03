@@ -86,7 +86,6 @@ public class Lexer {
 			comment = false;
 			usedInstructionSet = instructions;
 		}
-		System.out.println(t + " " + line);
 		return t;
 	}
 	

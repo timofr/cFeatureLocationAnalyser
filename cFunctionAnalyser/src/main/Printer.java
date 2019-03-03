@@ -14,7 +14,7 @@ public class Printer {
 
 	private List<FunctionDefinition> functions;
 	private List<Ifdef> ifdefs;
-	private Map<FunctionDefinition, List<Ifdef>> analysedFunctions;
+	private Map<FunctionDefinition, Map<Ifdef, Boolean>> analysedFunctions;
 	private List<PatternOccurance> occurances;
 	
 	public Printer(Parser parser) {
@@ -25,7 +25,7 @@ public class Printer {
 	}
 	
 	public void printFunctions() {
-		System.out.println("Printing function...");
+		System.out.println("Printing functions...");
 		functions.forEach(f -> System.out.println(f));
 	}
 	
@@ -39,10 +39,16 @@ public class Printer {
 		occurances.forEach(o -> System.out.println(o));
 	}
 	
-	public void printAnalysedFunction() {
-		System.out.println("Printing all analysed functions...");
+	public void printAnalysedFunctionPositive() {
+		System.out.println("Printing analysed functions with positive ifdefs...");
 		analysedFunctions.entrySet().stream()
-			.forEach(e -> System.out.println(e.getKey().getName() + " " + ifdefListToString(e.getValue())));
+			.forEach(e -> System.out.println(e.getKey().getName() + ifdefMapToString(e.getValue())));
+	}
+	
+	public void printAnalysedFunctionAll() {
+		System.out.println("Printing analysed functions with all ifdefs...");
+		analysedFunctions.entrySet().stream()
+			.forEach(e -> System.out.println(e.getKey().getName() + ifdefMapToString(e.getValue())));
 	}
 	
 	public void printFunctionNames() {
@@ -53,13 +59,15 @@ public class Printer {
 			.forEach(n -> System.out.println(n));
 	}
 	
-	private String ifdefListToString(List<Ifdef> loi) {
-		if(loi.size() == 0)
+	private String ifdefMapToString(Map<Ifdef, Boolean> map) {
+		if(map.size() == 0)
 			return "";
 		
-		StringBuilder builder = new StringBuilder();
-		loi.stream().forEach(i -> builder.append(i.getName()).append(", "));
-		return builder.substring(0, builder.length() - 2);
+		StringBuilder builder = new StringBuilder(" ");
+		map.entrySet().stream().filter(e -> e.getValue()).forEach(e -> builder.append("p:").append(e.getKey().getName()).append(" "));
+		map.entrySet().stream().filter(e -> !e.getValue()).forEach(e -> builder.append("n:").append(e.getKey().getName()).append(" "));
+		
+		return builder.substring(0, builder.length() - 1);
 	}
 	
 }
