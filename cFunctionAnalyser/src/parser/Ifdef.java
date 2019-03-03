@@ -21,7 +21,7 @@ public class Ifdef {
 	public Ifdef(Ifdef i) {
 		this.name = i.name;
 		this.ifdef = i.ifdef;
-		this.n = n;
+		this.n = i.n;
 		this.startLine = i.startLine;
 		this.elseLine = i.elseLine;
 		this.endLine = i.endLine;
