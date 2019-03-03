@@ -87,6 +87,7 @@ public abstract class LexerInstruction {
 		//If this LexerInstruction has an end,
 		//check for an illegal ending char
 		if ((this.endMatch != null) && !this.endMatch.match(c)) {
+			System.err.println("Current content " + contentBuilder.toString());
 			throw new IllegalCharException(c);
 		}
 		

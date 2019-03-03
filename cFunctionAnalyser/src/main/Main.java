@@ -1,6 +1,7 @@
 package main;
 import java.io.BufferedReader;
 import java.io.FileReader;
+import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -12,6 +13,8 @@ import lexer.Lexer;
 import parser.Parser;
 
 public class Main {
+	public static String path = null;
+	
 	private interface Invoker {
 		public void invoke();
 	}
@@ -25,7 +28,6 @@ public class Main {
 		Set<Character> possibleOptions = Stream.of('h', 'f', 'a', 'i', 'o')
 		         .collect(Collectors.toCollection(HashSet::new));
 		
-		String path = null;
 		StringBuilder options = new StringBuilder();
 		for(int i = 0; i < args.length; i++) {
 		    String a = args[i];
@@ -54,6 +56,8 @@ public class Main {
 			return;
 		}
 		
+		System.out.println("Starting to process file " + path);
+		
 		try(BufferedReader br = new BufferedReader(new FileReader(path))) {
 			StringBuilder sb = new StringBuilder();
 		    String line = br.readLine();
@@ -68,6 +72,7 @@ public class Main {
 		    
 		    Parser parser = new Parser(new Lexer(everything));
 		    Printer printer = new Printer(parser);
+		    
 		    parser.analyse();
 
 			Map<Character, Invoker> argsHandle = new HashMap<Character, Invoker>();
@@ -82,8 +87,11 @@ public class Main {
 				stringOptions.chars().forEach(c -> argsHandle.get((char) c).invoke());
 		}
 		catch(Exception e) {
+			System.err.println("Failed in file " + path);
 			e.printStackTrace();
+			System.exit(1);
 		}
+		
 	}
 	
 	private static void printHelp() {

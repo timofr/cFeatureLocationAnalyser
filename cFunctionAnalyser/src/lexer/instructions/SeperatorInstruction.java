@@ -7,7 +7,7 @@ import lexer.Token.TokenType;
 
 public class SeperatorInstruction extends LexerInstruction {
 	public SeperatorInstruction() {
-		super(new CharMatcher(new char[] {'(', ')', '{', '}', ';', ',', '\''}),
+		super(new CharMatcher(new char[] {'(', ')', '{', '}', ';', ',', '\'', '\\'}),
 				null,
 				null,
 				true, false);

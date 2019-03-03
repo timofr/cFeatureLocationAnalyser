@@ -11,7 +11,8 @@ public class Token {
 		SEPERATOR,
 		NEWLINE,
 		STRING,
-		CPP
+		CPP,
+		KEYWORD
 	}
 	
 	private final TokenType type;

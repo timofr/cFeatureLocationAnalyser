@@ -1,5 +1,6 @@
 package lexer;
 
+import java.util.Arrays;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
@@ -14,6 +15,7 @@ import lexer.instructions.SeperatorInstruction;
 import lexer.instructions.StringInstruction;
 import lexer.instructions.WhiteSpaceInstruction;
 import lexer.instructions.LexerInstruction.LexerStatus;
+import main.Main;
 
 public class Lexer {
 	
@@ -21,8 +23,13 @@ public class Lexer {
 	private String input;
 	private int position;
 	
+	private boolean comment = false;
+	private int line = 1;
+	
 	private final Set<LexerInstruction> instructions = new LinkedHashSet<>();
-
+	private final Set<LexerInstruction> commmentInstructions = new LinkedHashSet<>();
+	private Set<LexerInstruction> usedInstructionSet;
+	
 	public Lexer(String input) {
 		this.initialize();
 		this.input = input;
@@ -31,6 +38,7 @@ public class Lexer {
 	}
 	
 	private void initialize() {
+		usedInstructionSet = instructions;
 		this.addInstructions(
 				new CppInstruction(),
 				new IdentifierInstruction(),
@@ -40,6 +48,10 @@ public class Lexer {
 				new DecimalInstruction(),
 				new StringInstruction(),
 				new WhiteSpaceInstruction());
+		
+		this.commmentInstructions.addAll(Arrays.asList(
+				new NewLineInstruction(),
+				new OperatorInstruction()));
 	}
 	
 	public void consume() {
@@ -64,6 +76,17 @@ public class Lexer {
 		while (t == null) {
 			t = this.produceNextToken();
 		}
+		if(t.getType() == TokenType.NEWLINE)
+			line++;
+		if(!this.comment && t.getContent().contains("/*") && !t.getContent().contains("*/")) {
+			comment = true;
+			usedInstructionSet = commmentInstructions;
+		}
+		else if(this.comment && t.getContent().contains("*/")) {
+			comment = false;
+			usedInstructionSet = instructions;
+		}
+		System.out.println(t + " " + line);
 		return t;
 	}
 	
@@ -97,7 +120,7 @@ public class Lexer {
 		
 		//Find instruction which can handle the lookahead char
 		LexerInstruction instr = null;
-		for (LexerInstruction i: this.instructions) {
+		for (LexerInstruction i: this.usedInstructionSet) {
 			if (i.isStart(this.getLookahead())) {
 				instr = i;
 				break;
@@ -105,9 +128,15 @@ public class Lexer {
 		}
 
 		//If no instruction can handle this char it is illegal
-		if (instr == null)
-			throw new IllegalCharException(this.getLookahead());
-		
+		if (instr == null) {
+			if(!comment) {
+				System.err.println("Lexer cannot handle char " + this.getLookahead() + " in line " + line + " in file " + Main.path);
+			}
+			this.consume();
+			return null;
+		}
+		//	throw new IllegalCharException(this.getLookahead());
+			
 		//Consume the first char of the token.
 		this.consume();
 		

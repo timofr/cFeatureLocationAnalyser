@@ -18,7 +18,8 @@ public abstract class CppPattern extends Pattern {
 		List<Token> content = occurance.getContent();
 		switch(content.size()) {
 		case 1:
-			if(lookahead.getType() == TokenType.IDENTIFIER && lookahead.getContent().equals(cppName)) {
+			if((lookahead.getType() == TokenType.IDENTIFIER ||lookahead.getType() == TokenType.KEYWORD)
+					&& lookahead.getContent().equals(cppName)) {
 				content.add(lookahead);
 				if(identifier)
 					return false;

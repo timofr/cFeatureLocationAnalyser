@@ -11,6 +11,7 @@ import parser.pattern.CppElsePattern;
 import parser.pattern.CppEndifPattern;
 import parser.pattern.CppIfDefinedPattern;
 import parser.pattern.CppIfdefPattern;
+import parser.pattern.CppIfndefPattern;
 import parser.pattern.FunctionDefinitionPattern;
 import parser.pattern.OpenCurlyBracketPattern;
 import parser.pattern.Pattern;
@@ -27,8 +28,13 @@ public class PatternMatcher {
 		return new PatternMatcher(CppIfDefinedPattern.getInstance());
 	}
 	
+	
 	public static PatternMatcher getCppIfdefPatternMatcher() {
 		return new PatternMatcher(CppIfdefPattern.getInstance());
+	}
+	
+	public static PatternMatcher getCppIfndefPatternMatcher() {
+		return new PatternMatcher(CppIfndefPattern.getInstance());
 	}
 	
 	public static PatternMatcher getCppElifPatternMatcher() {

@@ -2,6 +2,7 @@ package parser;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -76,15 +77,16 @@ public class Parser {
 		
 		bracketStack.push(0);
 		
-		this.matchers.add(PatternMatcher.getCppDefinePatternMatcher());
+//		this.matchers.add(PatternMatcher.getCppDefinePatternMatcher());
 		this.matchers.add(PatternMatcher.getCppIfdefPatternMatcher());
 		this.matchers.add(PatternMatcher.getCppIfDefinedPatternMatcher());
+		this.matchers.add(PatternMatcher.getCppIfndefPatternMatcher());
 		this.matchers.add(PatternMatcher.getCppElsePatternMatcher());
 		this.matchers.add(PatternMatcher.getCppElifPatternMatcher());
 		this.matchers.add(PatternMatcher.getCppEndifPatternMatcher());
-		this.matchers.add(PatternMatcher.getFunctionDefinitionPatternMatcher());
-		this.matchers.add(PatternMatcher.getOpenCurlyBracketPatternMatcher());		
-		this.matchers.add(PatternMatcher.getCloseCurlyBracketPatternMatcher());
+//		this.matchers.add(PatternMatcher.getFunctionDefinitionPatternMatcher());
+//		this.matchers.add(PatternMatcher.getOpenCurlyBracketPatternMatcher());		
+//		this.matchers.add(PatternMatcher.getCloseCurlyBracketPatternMatcher());
 		
 		this.handlePattern.put(CppIfdefPattern.class, this::handleIfdefPattern);
 		this.handlePattern.put(CppIfDefinedPattern.class, this::handleIfDefinedPattern);
@@ -94,8 +96,8 @@ public class Parser {
 		this.handlePattern.put(CloseCurlyBracketPattern.class, this::handleCloseCurlyBracketPattern);
 		this.handlePattern.put(FunctionDefinitionPattern.class, this::handleFunctionDefinitionPattern);
 		this.handlePattern.put(CppDefinePattern.class, this::handleNothing);
-		this.handlePattern.put(CppElifPattern.class, this::throwException);
-		this.handlePattern.put(CppIfndefPattern.class, this::throwException); 
+		this.handlePattern.put(CppElifPattern.class, this::handleElifPattern);
+		this.handlePattern.put(CppIfndefPattern.class, this::handleIfndefPattern); 
 	}
 	
 	private void nextToken() throws LexerException {
@@ -124,7 +126,7 @@ public class Parser {
 		return builder.substring(0, builder.length() - 1);
 	}
 	
-	private void parse() throws LexerException {
+	public void parse() throws LexerException {
 		this.nextToken();
 		
 		while(lookahead.getType() != TokenType.EOF) {
@@ -133,7 +135,7 @@ public class Parser {
 				this.lineCounter++;
 			
 			for(PatternMatcher m : matchers) 
-				this.occurances.addAll(m.match(lookahead, lineCounter));
+ 				this.occurances.addAll(m.match(lookahead, lineCounter));
 			
 			this.nextToken();
 		}
@@ -146,11 +148,13 @@ public class Parser {
 	
 	int lastBracket = 0; //avoid inner class access error
 	
-	private void determineRanges() throws LexerException {
+	public void determineRanges() throws LexerException {
 		this.parse();
 		
 		for(PatternOccurance po : occurances) {
+			System.out.println(po);
 			handlePattern.get(po.getPattern().getClass()).accept(po);
+			System.out.println(ifdefStack);
 		}
 			
 		assert bracketStack.peek() == 0 : "Last function got more '{' than '}'";
@@ -162,21 +166,34 @@ public class Parser {
 	public Map<FunctionDefinition, List<Ifdef>> analyse() throws LexerException {
 		determineRanges();
 		
-		functions.stream()
-			.filter(f -> f.getIfdef().stream().map(id -> id.isIfdef()).reduce(true, Boolean::logicalAnd))
-			.forEach(f -> analysedFunctions.put(f, new ArrayList<Ifdef>()));
-		
-		for(Ifdef i : ifdefs) {
-			for(FunctionDefinition f : functions) {
-				if(i.getElseLine() == -1) {
-					if((f.getStart() > i.getStartLine()) && (f.getEnd() < i.getEndLine()))
-						analysedFunctions.get(f).add(i);
-				} else {
-					if((f.getStart() > i.getStartLine()) && (f.getEnd() < i.getElseLine()))
-						analysedFunctions.get(f).add(i);
-				}
-			}
-		}
+//		functions.stream()
+//			.filter(f -> f.getIfdef().stream().map(id -> id.isIfdef()).reduce(true, Boolean::logicalAnd))
+//			.forEach(f -> analysedFunctions.put(f, new ArrayList<Ifdef>()));
+//		
+//		for(Ifdef i : ifdefs) {
+//			System.out.println(i + i.rangeToString());
+//			for(FunctionDefinition f : functions) {
+//				System.out.println(f);
+//				if(i.isN()) {
+//					if(i.getElseLine() != -1) {
+//						if((f.getStart() > i.getStartLine()) && (f.getEnd() < i.getEndLine()))
+//							analysedFunctions.get(f).add(i);
+//					}
+//				}
+//				else {
+//					if(i.getElseLine() == -1) {
+//						if((f.getStart() > i.getStartLine()) && (f.getEnd() < i.getEndLine()))
+//							analysedFunctions.get(f).add(i);
+//					} else {
+//						if((f.getStart() > i.getStartLine()) && (f.getEnd() < i.getElseLine()))
+//							analysedFunctions.get(f).add(i);
+//					}
+//				}
+//				
+//				
+//				
+//			}
+//		}
 		
 		return analysedFunctions;
 	}
@@ -191,25 +208,46 @@ public class Parser {
 		}
 		
 		functionsToAnalyse.add(new FunctionDefinition(
-						po.getContent().get(1).getContent(),
+						po.getContent().get(0).getContent(),
 						ifdefStack.stream().map(Ifdef::new).collect(Collectors.toList()), //deep copy of ifdef stack to list
 						po.getStartLine()));
 	}
 	
 	private void handleIfdefPattern(PatternOccurance po) {
-		ifdefStack.push(new Ifdef(po.getContent().get(2).getContent(), po.getStartLine()));
+		ifdefStack.push(new Ifdef(po.getContent().get(2).getContent(), true, po.getStartLine()));
 		bracketStack.push(bracketStack.peek());
 	}
 	
 	private void handleIfDefinedPattern(PatternOccurance po) {
-		ifdefStack.push(new Ifdef(getIfDefinedIdentifier(po.getContent()), po.getStartLine()));
+		ifdefStack.push(new Ifdef(getIfDefinedIdentifier(po.getContent()), true, po.getStartLine()));
 		bracketStack.push(bracketStack.peek());
 	}
 
+	private void handleIfndefPattern(PatternOccurance po) {
+		Ifdef i = new Ifdef(po.getContent().get(2).getContent(), false, po.getStartLine());
+		i.setElseLine(po.getEndLine());
+		ifdefStack.push(i);
+		
+		bracketStack.push(bracketStack.peek());
+	}
+	
 	private void handleElsePattern(PatternOccurance po) {
-		ifdefStack.peek().setIfdef(false);
-		ifdefStack.peek().setElseLine(po.getStartLine());
-		bracketStack.push(popAndChangeTop(bracketStack));
+		Ifdef top = ifdefStack.peek();
+		if(top.isN()) {
+			top.setIfdef(true);
+			top.setElseLine(po.getStartLine());
+			bracketStack.push(popAndChangeTop(bracketStack));
+		}
+		else {
+			top.setIfdef(false);
+			top.setElseLine(po.getStartLine());
+			bracketStack.push(popAndChangeTop(bracketStack));
+		}
+	}
+	
+	private void handleElifPattern(PatternOccurance po) {
+		handleElsePattern(po);
+		handleIfDefinedPattern(po);
 	}
 
 	private void handleEndifPattern(PatternOccurance po) {
