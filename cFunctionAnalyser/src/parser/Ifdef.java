@@ -1,13 +1,17 @@
 package parser;
 
-public class Ifdef {
+import java.io.Serializable;
+
+public class Ifdef implements Serializable{
+	
+	private static final long serialVersionUID = -8167505029807088870L;
+	
 	private String name;
 	private boolean ifdef;
 	private boolean n; //is it ifndef block
 	private int startLine;
 	private int elseLine;
 	private int endLine;
-	
 	
 	public Ifdef(String name, boolean ifdef, int startLine) {
 		this.name = name;

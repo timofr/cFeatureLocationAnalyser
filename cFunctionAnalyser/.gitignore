@@ -1,2 +1,6 @@
 /bin/
-/kernel/
+/resources/
+cfa_database
+cfa_database.bak
+cfa_ifdefs
+ifdef.txt

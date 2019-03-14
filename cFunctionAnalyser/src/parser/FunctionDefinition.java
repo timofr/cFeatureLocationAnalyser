@@ -1,8 +1,12 @@
 package parser;
 
+import java.io.Serializable;
 import java.util.List;
 
-public class FunctionDefinition {
+public class FunctionDefinition implements Serializable {
+	
+	private static final long serialVersionUID = -1885190872771466626L;
+	
 	private String name;
 	private List<Ifdef> ifdef;
 	private int start;

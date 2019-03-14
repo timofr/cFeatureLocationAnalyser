@@ -1,5 +1,6 @@
 package lexer;
 
+import java.io.File;
 import java.util.Arrays;
 import java.util.LinkedHashSet;
 import java.util.Set;
@@ -15,23 +16,26 @@ import lexer.instructions.SeperatorInstruction;
 import lexer.instructions.StringInstruction;
 import lexer.instructions.WhiteSpaceInstruction;
 import lexer.instructions.LexerInstruction.LexerStatus;
-import main.Main;
 
 public class Lexer {
+	
+	private File file;
 	
 	public static final char EOF = (char)-1; 
 	private String input;
 	private int position;
 	
-	private boolean comment = false;
+	private boolean commentBlock = false;
+	private boolean commentLine = false;
 	private int line = 1;
 	
 	private final Set<LexerInstruction> instructions = new LinkedHashSet<>();
 	private final Set<LexerInstruction> commmentInstructions = new LinkedHashSet<>();
 	private Set<LexerInstruction> usedInstructionSet;
 	
-	public Lexer(String input) {
+	public Lexer(File file, String input) {
 		this.initialize();
+		this.file = file;
 		this.input = input;
 		this.position = -1;
 		this.consume();
@@ -78,12 +82,26 @@ public class Lexer {
 		}
 		if(t.getType() == TokenType.NEWLINE)
 			line++;
-		if(!this.comment && t.getContent().contains("/*") && !t.getContent().contains("*/")) {
-			comment = true;
+		
+		
+		if(t.getContent().contains("//")) {
+			usedInstructionSet = commmentInstructions;
+			commentLine = true;
+		}
+		
+		if(t.getType() == TokenType.NEWLINE) {
+			if(!commentBlock)
+				usedInstructionSet = instructions;
+				
+			commentLine = false;
+		}
+		
+		if(!this.commentBlock && t.getContent().contains("/*") && !t.getContent().contains("*/")) {
+			commentBlock = true;
 			usedInstructionSet = commmentInstructions;
 		}
-		else if(this.comment && t.getContent().contains("*/")) {
-			comment = false;
+		else if(this.commentBlock && t.getContent().contains("*/")) {
+			commentBlock = false;
 			usedInstructionSet = instructions;
 		}
 		return t;
@@ -128,8 +146,8 @@ public class Lexer {
 
 		//If no instruction can handle this char it is illegal
 		if (instr == null) {
-			if(!comment) {
-				System.err.println("Lexer cannot handle char " + this.getLookahead() + " in line " + line + " in file " + Main.path);
+			if(!commentBlock && !commentLine) {
+				System.err.println("Lexer cannot handle char " + this.getLookahead() + " in line " + line + " in file " + file);
 			}
 			this.consume();
 			return null;
@@ -161,5 +179,9 @@ public class Lexer {
 		}
 		
 		return instr.getToken();
+	}
+
+	public File getFile() {
+		return file;
 	}	
 }

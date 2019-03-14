@@ -1,5 +1,6 @@
 package parser;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
@@ -14,6 +15,7 @@ import lexer.Lexer;
 import lexer.LexerException;
 import lexer.Token;
 import lexer.Token.TokenType;
+import main.DatabaseHandler;
 import parser.pattern.CloseCurlyBracketPattern;
 import parser.pattern.CppDefinePattern;
 import parser.pattern.CppElifPattern;
@@ -27,6 +29,8 @@ import parser.pattern.OpenCurlyBracketPattern;
 import parser.pattern.Pattern;
 
 public class Parser {
+	
+	private File file;
 	
 	private int lineCounter = 1;
 
@@ -44,7 +48,7 @@ public class Parser {
 	private List<FunctionDefinition> functions = new ArrayList<FunctionDefinition>();
 	private List<Ifdef> ifdefs = new ArrayList<Ifdef>();
 	
-	private Map<FunctionDefinition,  Map<Ifdef, Boolean>> analysedFunctions = new HashMap<FunctionDefinition, Map<Ifdef, Boolean>>();
+	private Map<String, List<FunctionData>> analysedFunctions = DatabaseHandler.getInstance().getDatabase();
 	
 	private List<FunctionDefinition> functionsToAnalyse = new ArrayList<FunctionDefinition>();
 	private Stack<Ifdef> ifdefStack = new Stack<Ifdef>();
@@ -52,7 +56,12 @@ public class Parser {
 
 	public Parser(Lexer lexer) {
 		this.lexer = lexer;
+		this.file = lexer.getFile();
 		initialize();
+	}
+	
+	public File getFile() {
+		return file;
 	}
 	
 	public List<FunctionDefinition> getFunctions() {
@@ -63,7 +72,7 @@ public class Parser {
 		return ifdefs;
 	}
 	
-	public Map<FunctionDefinition, Map<Ifdef, Boolean>> getAnalysedFunctions() {
+	public Map<String, List<FunctionData>> getAnalysedFunctions() {
 		return analysedFunctions;
 	}
 	
@@ -154,54 +163,53 @@ public class Parser {
 			handlePattern.get(po.getPattern().getClass()).accept(po);
 		}
 			
-		assert bracketStack.peek() == 0 : "Last function got more '{' than '}'";
+		assert bracketStack.peek() == 0 : "Some function got more '{' than '}'";
+		assert ifdefStack.size() == 0 : "Some Ifdef does not get closed properly";
 		functionsToAnalyse.forEach(f -> f.setEnd(lastBracket));
 		functions.addAll(functionsToAnalyse);
 		functionsToAnalyse.clear();
 	}
 	
-	public Map<FunctionDefinition, Map<Ifdef, Boolean>> analyse() throws LexerException {
+	public Map<String, List<FunctionData>> analyse() throws LexerException {
 		determineRanges();
 		
-		
-		
-		
-		functions.stream()
-//			.filter(f -> f.getIfdef().stream().map(id -> id.isIfdef()).reduce(true, Boolean::logicalAnd))
-			.forEach(f -> analysedFunctions.put(f, new HashMap<Ifdef, Boolean>()));
-		
-		for(Ifdef i : ifdefs) {
-			for(FunctionDefinition f : functions) {
+		for(FunctionDefinition f : functions) {
+			if(analysedFunctions.get(f.getName()) == null) {
+				analysedFunctions.put(f.getName(), new ArrayList<FunctionData>());
+			}
+			
+			List<Ifdef> posIfdef = new ArrayList<Ifdef>();
+			List<Ifdef> negIfdef = new ArrayList<Ifdef>();
+			
+			for(Ifdef i : ifdefs) {
 				if(i.isN()) {
 					if (i.getElseLine() == -1) {
 						if ((f.getStart() > i.getStartLine()) && (f.getEnd() < i.getEndLine()))
-							analysedFunctions.get(f).put(i, false);
+							negIfdef.add(i);
 					} else {
 						if ((f.getStart() > i.getStartLine()) && (f.getEnd() < i.getElseLine()))
-							analysedFunctions.get(f).put(i, false);
+							negIfdef.add(i);
 						else if((f.getStart() > i.getElseLine()) && (f.getEnd() < i.getEndLine())) {
-							analysedFunctions.get(f).put(i, true);
+							posIfdef.add(i);
 						}
 					}
 				}
 				else {
 					if (i.getElseLine() == -1) {
 						if ((f.getStart() > i.getStartLine()) && (f.getEnd() < i.getEndLine()))
-							analysedFunctions.get(f).put(i, true);
+							posIfdef.add(i);
 					} else {
 						if ((f.getStart() > i.getStartLine()) && (f.getEnd() < i.getElseLine()))
-							analysedFunctions.get(f).put(i, true);
+							posIfdef.add(i);
 						else if((f.getStart() > i.getElseLine()) && (f.getEnd() < i.getEndLine())) {
-							analysedFunctions.get(f).put(i, false);
+							negIfdef.add(i);
 						}
 					}
 				}
-				
-				
-				
 			}
+			
+			analysedFunctions.get(f.getName()).add(new FunctionData(f, file, posIfdef, negIfdef));
 		}
-		System.out.println(analysedFunctions);
 		return analysedFunctions;
 	}
 	
