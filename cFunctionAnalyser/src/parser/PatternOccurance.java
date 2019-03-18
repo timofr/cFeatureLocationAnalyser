@@ -14,10 +14,10 @@ public class PatternOccurance {
 	private List<Token> content = new LinkedList<Token>();
 	private Pattern pattern;
 	
-	public PatternOccurance(Pattern pattern, Token token, int startLine) {
+	public PatternOccurance(Pattern pattern, Token token) {
 		this.pattern = pattern;
 		this.content.add(token);
-		this.startLine = startLine;
+		this.startLine = token.getStart();
 	}
 
 	public int getEndLine() {

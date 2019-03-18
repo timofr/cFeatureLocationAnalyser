@@ -69,7 +69,6 @@ public class IdentifierInstruction extends LexerInstruction {
 
 	@Override
 	public Token getToken() throws LexerException {
-		String content = this.getContent();
-		return new Token(keywords.contains(content)? TokenType.KEYWORD : TokenType.IDENTIFIER, content);
+		return getNewToken(keywords.contains(this.getContent())? TokenType.KEYWORD : TokenType.IDENTIFIER);
 	}
 }

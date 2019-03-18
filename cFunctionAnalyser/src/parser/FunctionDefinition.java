@@ -12,10 +12,18 @@ public class FunctionDefinition implements Serializable {
 	private int start;
 	private int end;
 	
+	public FunctionDefinition(String name, List<Ifdef> ifdef) {
+		this.name = name;
+		this.ifdef = ifdef;
+		this.start = -1;
+		this.end = -1;
+	}
+	
 	public FunctionDefinition(String name, List<Ifdef> ifdef, int start) {
 		this.name = name;
 		this.ifdef = ifdef;
 		this.start = start;
+		this.end = -1;
 	}
 
 	@Override

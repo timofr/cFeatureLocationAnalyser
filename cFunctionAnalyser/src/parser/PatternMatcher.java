@@ -68,7 +68,7 @@ public class PatternMatcher {
 		this.pattern = pattern;
 	}
 	
-	public List<PatternOccurance> match(Token lookahead, int line) {
+	public List<PatternOccurance> match(Token lookahead) {
 		List<PatternOccurance> occurance = new LinkedList<PatternOccurance>();
 		List<PatternOccurance> oToRemove = new LinkedList<PatternOccurance>();
 		for(PatternOccurance o : currentPatterns) {
@@ -76,7 +76,7 @@ public class PatternMatcher {
 				if(pattern.process(o, lookahead)) {
 					oToRemove.add(o);
 					occurance.add(o);
-					o.setEndLine(line);
+					o.setEndLine(lookahead.getEnd());
 				}
 			} catch (UnexpectedTokenException e) {
 				oToRemove.add(o);
@@ -90,7 +90,7 @@ public class PatternMatcher {
 		currentPatterns.removeAll(oToRemove);
 		
 		if(this.pattern.match(lookahead))
-			currentPatterns.add(new PatternOccurance(this.pattern, lookahead, line));
+			currentPatterns.add(new PatternOccurance(this.pattern, lookahead));
 		return occurance;
 	}
 }

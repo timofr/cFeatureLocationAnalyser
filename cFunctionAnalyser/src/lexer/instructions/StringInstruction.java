@@ -15,8 +15,16 @@ public class StringInstruction extends LexerInstruction {
 	}
 
 	@Override
+	protected Boolean checkContentLookAhead(char c) {
+		if(c == '\\') {
+			return null;
+		}
+		return true;
+	}
+	
+	@Override
 	public Token getToken() throws LexerException {
-		return new Token(TokenType.STRING, this.getContent());
+		return getNewToken(TokenType.STRING);
 	}
 
 }

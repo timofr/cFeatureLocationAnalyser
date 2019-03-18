@@ -50,7 +50,7 @@ public class ArgumentHandler {
 		debug.setRequired(false);
 		options.addOption(debug);
 		
-		Option extensions = new Option("e", "extensions", true, "file extensions (default: 'c', usage e.g.: -e 'cpp h c')");
+		Option extensions = new Option("e", "extensions", true, "file extensions (default: 'c', usage e.g.: -e cpp h c)");
 		extensions.setRequired(false);
 		extensions.setArgs(-2);
 		options.addOption(extensions);

@@ -16,7 +16,7 @@ public class CppInstruction extends LexerInstruction {
 	
 	@Override
 	public Token getToken() throws LexerException {
-		return new Token(TokenType.CPP, this.getContent());
+		return getNewToken(TokenType.CPP);
 	}
 
 }

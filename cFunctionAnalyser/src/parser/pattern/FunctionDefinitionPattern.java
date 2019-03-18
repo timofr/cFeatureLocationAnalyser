@@ -10,6 +10,7 @@ import parser.UnexpectedTokenException;
 public class FunctionDefinitionPattern extends Pattern {
 
 	private static Pattern pattern;
+	
 
 	private FunctionDefinitionPattern() {
 	}
@@ -31,7 +32,7 @@ public class FunctionDefinitionPattern extends Pattern {
 			content.add(lookahead);
 			return false;
 		} else {
-			if (content.contains(new Token(TokenType.SEPERATOR, ")"))) {
+			if (content.stream().anyMatch(t -> t.getContent().equals(")"))) {
 
 				if (lookahead.getContent().equals("{")) {
 					content.add(lookahead);

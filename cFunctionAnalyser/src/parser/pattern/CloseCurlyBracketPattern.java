@@ -1,6 +1,7 @@
 package parser.pattern;
 
 import lexer.Token;
+import lexer.Token.TokenType;
 
 public class CloseCurlyBracketPattern extends SingleTokenPattern {
 	
@@ -14,7 +15,7 @@ public class CloseCurlyBracketPattern extends SingleTokenPattern {
 	
 	@Override
 	public boolean match(Token lookahead) {
-		return lookahead.getContent().equals("}");
+		return lookahead.getType() == TokenType.SEPERATOR && lookahead.getContent().equals("}");
 	}
 
 }

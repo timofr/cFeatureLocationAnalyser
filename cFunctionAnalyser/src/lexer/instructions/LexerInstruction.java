@@ -5,12 +5,17 @@ import lexer.IllegalCharException;
 import lexer.Lexer;
 import lexer.LexerException;
 import lexer.Token;
+import lexer.Token.TokenType;
 
 public abstract class LexerInstruction {
 	
 	public static enum LexerStatus {
 		
 		GO_ON,
+		
+		JUMP_ONE_NOT_FINISHED,
+		
+		JUMP_ONE_FINISHED_CONSUMED,
 		
 		FINISHED_CONSUMED,
 		
@@ -23,9 +28,12 @@ public abstract class LexerInstruction {
 	private final boolean includeStart, includeEnd;
 
 	private final StringBuilder contentBuilder = new StringBuilder();
-	
+	protected int start;
+	protected int end;
 
-	private Lexer lookaheadProvider;
+	protected Lexer lookaheadProvider;
+
+
 	
 
 	public LexerInstruction(CharMatcher startMatch, CharMatcher contentMatch,
@@ -55,6 +63,7 @@ public abstract class LexerInstruction {
 		if (matches) {
 			//Clear StringBuilder for next token
 			this.contentBuilder.setLength(0);
+			this.start = lookaheadProvider.getLine();
 			
 			//Include start.
 			if (this.includeStart) {
@@ -70,11 +79,34 @@ public abstract class LexerInstruction {
 		return true;
 	}
 	
+	protected Boolean checkContentLookAhead(char c) {
+		return true;
+	}
+	
 
+	public LexerStatus consumeAndUpdateLine(char c, int line) throws IllegalCharException {
+		LexerStatus status = this.consume(c);
+		this.end = line;
+		return status;
+	}
+	
 	public LexerStatus consume(char c) throws IllegalCharException {
 		//If the char matches, consume and ask for more.
 		if ((this.contentMatch != null) && this.contentMatch.match(c)) {
 			this.contentBuilder.append(c);
+			
+			Boolean contentCheck = checkContentLookAhead(c);
+			
+			//Content consumes next char without content match. Useful for escape characters like \n
+			if(contentCheck  == null)
+				return LexerStatus.JUMP_ONE_NOT_FINISHED;
+			
+			//Content will be finished with next char
+			else if(!contentCheck) {
+				return LexerStatus.JUMP_ONE_FINISHED_CONSUMED;
+			}
+			
+			//Normal way
 			return LexerStatus.GO_ON;
 		}
 		
@@ -88,7 +120,7 @@ public abstract class LexerInstruction {
 		//check for an illegal ending char
 		if ((this.endMatch != null) && !this.endMatch.match(c)) {
 			System.err.println("Current content " + contentBuilder.toString());
-			throw new IllegalCharException(c);
+			throw new IllegalCharException(c, lookaheadProvider.getLine());
 		}
 		
 		if (this.endMatch == null) {
@@ -106,4 +138,12 @@ public abstract class LexerInstruction {
 	}
 
 	public abstract Token getToken() throws LexerException;
+
+	public void append(char c) {
+		contentBuilder.append(c);
+	}
+	
+	protected Token getNewToken(TokenType type) {
+		return new Token(type, this.getContent(), this.start, this.end);
+	}
 }

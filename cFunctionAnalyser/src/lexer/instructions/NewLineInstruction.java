@@ -15,6 +15,6 @@ public class NewLineInstruction extends LexerInstruction {
 
 	@Override
 	public Token getToken() throws LexerException {
-		return new Token(TokenType.NEWLINE, this.getContent());
+		return getNewToken(TokenType.NEWLINE);
 	}
 }

@@ -73,7 +73,7 @@ public class Main {
 				if(printerData != null)
 					ArgumentHandler.debug(cmd.getOptionValue("debug"), printerData);
 				
-				System.gc();
+				//System.gc();
 			}
 			databaseHandler.writeDatabase(database);
 		}

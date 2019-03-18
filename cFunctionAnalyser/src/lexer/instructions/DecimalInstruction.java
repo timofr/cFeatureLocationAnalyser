@@ -36,7 +36,7 @@ public class DecimalInstruction extends LexerInstruction {
 	
 	@Override
 	public Token getToken() throws LexerException {
-		return new Token(TokenType.DECIMAL, this.getContent());
+		return getNewToken(TokenType.DECIMAL);
 	}
 
 }

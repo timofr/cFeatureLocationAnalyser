@@ -13,6 +13,15 @@ public class Ifdef implements Serializable{
 	private int elseLine;
 	private int endLine;
 	
+	public Ifdef(String name) {
+		this.name = name;
+		this.ifdef = true;
+		this.n = false;
+		this.startLine = -1;
+		this.elseLine = -1;
+		this.endLine = -1;
+	}
+	
 	public Ifdef(String name, boolean ifdef, int startLine) {
 		this.name = name;
 		this.ifdef = ifdef;

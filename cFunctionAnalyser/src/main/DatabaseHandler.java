@@ -14,9 +14,9 @@ import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 import java.util.stream.Collectors;
 
 import parser.FunctionData;
@@ -41,7 +41,7 @@ public class DatabaseHandler {
 	}
 	
 	public void initDatabase() {
-		database = new HashMap<String, List<FunctionData>>();
+		database = new TreeMap<String, List<FunctionData>>(); //UNSURE TreeMap or HashMap. prob TreeMap
 	}
 	
 	public void initDatabase(File file) {
@@ -56,7 +56,7 @@ public class DatabaseHandler {
 	private Map<String, List<FunctionData>> readDatabase(File databaseFile) {
 		
 		try (ObjectInputStream ois = new ObjectInputStream(new FileInputStream(databaseFile))) {
-			database = (HashMap<String, List<FunctionData>>) ois.readObject();
+			database = (TreeMap<String, List<FunctionData>>) ois.readObject();
 			ois.close();
 		} catch (IOException ioe) {
 			ioe.printStackTrace();
@@ -146,5 +146,9 @@ public class DatabaseHandler {
 			writer.write(s);
 			writer.newLine();
 		}
+	}
+	
+	public void printFunctionNames() {
+		database.keySet().forEach(s -> System.out.println(s));
 	}
 }

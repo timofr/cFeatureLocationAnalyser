@@ -7,7 +7,9 @@ import lexer.Token.TokenType;
 
 public class SeperatorInstruction extends LexerInstruction {
 	public SeperatorInstruction() {
-		super(new CharMatcher(new char[] {'(', ')', '{', '}', ';', ',', '\'', '\\'}),
+		super(new CharMatcher(new char[] {'(', ')', '{', '}', ';', ',', '\\', '`'}), 
+				//PRECARIOUS '`' e.g. in linux/arch/arc/include/asm/linkage.h /* use '`' to mark new line in macro */
+				//Should be solve through CharacterInstruction::checkStartLookahead
 				null,
 				null,
 				true, false);
@@ -15,6 +17,6 @@ public class SeperatorInstruction extends LexerInstruction {
 
 	@Override
 	public Token getToken() throws LexerException {
-		return new Token(TokenType.SEPERATOR, this.getContent());
+		return getNewToken(TokenType.SEPERATOR);
 	}
 }

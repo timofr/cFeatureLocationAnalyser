@@ -27,7 +27,7 @@ public abstract class CppPattern extends Pattern {
 			}
 			break;
 		case 2:
-			if(lookahead.getType() == TokenType.IDENTIFIER) {
+			if(lookahead.getType() == TokenType.IDENTIFIER ||lookahead.getType() == TokenType.KEYWORD) {
 				content.add(lookahead);
 				return true;
 			}

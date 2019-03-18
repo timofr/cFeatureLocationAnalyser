@@ -6,6 +6,9 @@ import java.util.LinkedHashSet;
 import java.util.Set;
 
 import lexer.Token.TokenType;
+import lexer.instructions.CharacterInstruction;
+import lexer.instructions.CommentMultilineInstruction;
+import lexer.instructions.CommentSinglelineInstruction;
 import lexer.instructions.CppInstruction;
 import lexer.instructions.DecimalInstruction;
 import lexer.instructions.IdentifierInstruction;
@@ -37,8 +40,7 @@ public class Lexer {
 		this.initialize();
 		this.file = file;
 		this.input = input;
-		this.position = -1;
-		this.consume();
+		this.position = 0;
 	}
 	
 	private void initialize() {
@@ -47,10 +49,13 @@ public class Lexer {
 				new CppInstruction(),
 				new IdentifierInstruction(),
 				new NewLineInstruction(),
+				new DecimalInstruction(),
+				new CommentSinglelineInstruction(),
+				new CommentMultilineInstruction(),
 				new OperatorInstruction(),
 				new SeperatorInstruction(),
-				new DecimalInstruction(),
 				new StringInstruction(),
+				new CharacterInstruction(),
 				new WhiteSpaceInstruction());
 		
 		this.commmentInstructions.addAll(Arrays.asList(
@@ -59,10 +64,17 @@ public class Lexer {
 	}
 	
 	public void consume() {
+		char la = this.lookahead(0);
+		if(la == '\n')
+			line++;
 		this.position++;
 	}
 	
 	
+	public int getLine() {
+		return line;
+	}
+
 	private void addInstruction(LexerInstruction instr) {
 		this.instructions.add(instr);
 		
@@ -80,30 +92,6 @@ public class Lexer {
 		while (t == null) {
 			t = this.produceNextToken();
 		}
-		if(t.getType() == TokenType.NEWLINE)
-			line++;
-		
-		
-		if(t.getContent().contains("//")) {
-			usedInstructionSet = commmentInstructions;
-			commentLine = true;
-		}
-		
-		if(t.getType() == TokenType.NEWLINE) {
-			if(!commentBlock)
-				usedInstructionSet = instructions;
-				
-			commentLine = false;
-		}
-		
-		if(!this.commentBlock && t.getContent().contains("/*") && !t.getContent().contains("*/")) {
-			commentBlock = true;
-			usedInstructionSet = commmentInstructions;
-		}
-		else if(this.commentBlock && t.getContent().contains("*/")) {
-			commentBlock = false;
-			usedInstructionSet = instructions;
-		}
 		return t;
 	}
 	
@@ -111,13 +99,13 @@ public class Lexer {
 		return this.getLookahead() != EOF;
 	}
 	
-	public void match(char c) throws LexerException {
-		if(this.getLookahead() == c) {
-			this.consume();
-		} else {
-			throw new LexerException("Expected char '" + c + "' but found: " + this.getLookahead());
-		}
-	}
+//	public void match(char c) throws LexerException {
+//		if(this.getLookahead() == c) {
+//			this.consume();
+//		} else {
+//			throw new LexerException("Expected char '" + c + "' but found: " + this.getLookahead(), line);
+//		}
+//	}
 	
 	public char lookahead(int characters) {
 		int lookaheadPosition = this.position + characters;
@@ -133,7 +121,7 @@ public class Lexer {
 	
 	private Token produceNextToken() throws LexerException {
 		if (!this.hasNext())
-			return new Token(TokenType.EOF, String.valueOf(Lexer.EOF));
+			return new Token(TokenType.EOF, String.valueOf(Lexer.EOF), line, line);
 		
 		//Find instruction which can handle the lookahead char
 		LexerInstruction instr = null;
@@ -160,10 +148,12 @@ public class Lexer {
 		//Instruction consumes chars until it says that it is finished
 		LexerStatus status = LexerStatus.GO_ON;
 		while (status == LexerStatus.GO_ON) {
+	
+			
 			//No need of checking for EOF
 			//The instruction is handle to handle it
 			//It will take the appropriate action (ending or throwing)
-			status = instr.consume(this.getLookahead());
+			status = instr.consumeAndUpdateLine(this.getLookahead(), line);
 			
 			//Consume next char, if needed
 			switch (status) {
@@ -174,6 +164,17 @@ public class Lexer {
 				this.consume();
 				break;
 			case FINISHED_NOT_CONSUMED:
+				break;
+			case JUMP_ONE_NOT_FINISHED:
+				this.consume();
+				instr.append(this.getLookahead());
+				this.consume();
+				status = LexerStatus.GO_ON;
+				break;
+			case JUMP_ONE_FINISHED_CONSUMED:
+				this.consume();
+				instr.append(this.getLookahead());
+				this.consume();
 				break;
 			}
 		}

@@ -2,10 +2,12 @@ package parser;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.EmptyStackException;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.Stack;
 import java.util.function.Consumer;
@@ -17,7 +19,6 @@ import lexer.Token;
 import lexer.Token.TokenType;
 import main.DatabaseHandler;
 import parser.pattern.CloseCurlyBracketPattern;
-import parser.pattern.CppDefinePattern;
 import parser.pattern.CppElifPattern;
 import parser.pattern.CppElsePattern;
 import parser.pattern.CppEndifPattern;
@@ -32,7 +33,6 @@ public class Parser {
 	
 	private File file;
 	
-	private int lineCounter = 1;
 
 	private final Lexer lexer;
 	
@@ -48,7 +48,10 @@ public class Parser {
 	private List<FunctionDefinition> functions = new ArrayList<FunctionDefinition>();
 	private List<Ifdef> ifdefs = new ArrayList<Ifdef>();
 	
+	private Map<String, List<FunctionData>> tempAnalysedFunctions = new HashMap<String, List<FunctionData>>();
+	
 	private Map<String, List<FunctionData>> analysedFunctions = DatabaseHandler.getInstance().getDatabase();
+
 	
 	private List<FunctionDefinition> functionsToAnalyse = new ArrayList<FunctionDefinition>();
 	private Stack<Ifdef> ifdefStack = new Stack<Ifdef>();
@@ -73,7 +76,7 @@ public class Parser {
 	}
 	
 	public Map<String, List<FunctionData>> getAnalysedFunctions() {
-		return analysedFunctions;
+		return tempAnalysedFunctions;
 	}
 	
 	public List<PatternOccurance> getOccurances() {
@@ -85,7 +88,7 @@ public class Parser {
 		
 		bracketStack.push(0);
 		
-		this.matchers.add(PatternMatcher.getCppDefinePatternMatcher());
+//		this.matchers.add(PatternMatcher.getCppDefinePatternMatcher());
 		this.matchers.add(PatternMatcher.getCppIfdefPatternMatcher());
 		this.matchers.add(PatternMatcher.getCppIfDefinedPatternMatcher());
 		this.matchers.add(PatternMatcher.getCppIfndefPatternMatcher());
@@ -103,7 +106,7 @@ public class Parser {
 		this.handlePattern.put(OpenCurlyBracketPattern.class, this::handleOpenCurlyBracketPattern);
 		this.handlePattern.put(CloseCurlyBracketPattern.class, this::handleCloseCurlyBracketPattern);
 		this.handlePattern.put(FunctionDefinitionPattern.class, this::handleFunctionDefinitionPattern);
-		this.handlePattern.put(CppDefinePattern.class, this::handleNothing);
+//		this.handlePattern.put(CppDefinePattern.class, this::handleNothing);
 		this.handlePattern.put(CppElifPattern.class, this::handleElifPattern);
 		this.handlePattern.put(CppIfndefPattern.class, this::handleIfndefPattern); 
 	}
@@ -138,12 +141,8 @@ public class Parser {
 		this.nextToken();
 		
 		while(lookahead.getType() != TokenType.EOF) {
-			
-			if(lookahead.getType() == TokenType.NEWLINE)
-				this.lineCounter++;
-			
 			for(PatternMatcher m : matchers) 
- 				this.occurances.addAll(m.match(lookahead, lineCounter));
+ 				this.occurances.addAll(m.match(lookahead));
 			
 			this.nextToken();
 		}
@@ -151,31 +150,34 @@ public class Parser {
 		//ifdefStack.peek().setEndLine(lineCounter);  // only used if cfile ifdef is used
 		
 		for(PatternMatcher m : matchers) 
-			this.occurances.addAll(m.match(lookahead, lineCounter));
+			this.occurances.addAll(m.match(lookahead));
 	}
 	
-	int lastBracket = 0; //avoid inner class access error
+	private int lastBracket = 0; //avoid inner class access error
 	
-	public void determineRanges() throws LexerException {
-		this.parse();
-		
-		for(PatternOccurance po : occurances) {
-			handlePattern.get(po.getPattern().getClass()).accept(po);
+	public void determineRanges() throws ParserException {
+		try {
+			for(PatternOccurance po : occurances) {
+				handlePattern.get(po.getPattern().getClass()).accept(po);
+			}
+		}
+		catch(EmptyStackException e) {
+			throw new ParserException("Some function or ifdef does not got closed properly."
+					+ "\nBracketStack size: " + bracketStack.size()
+					+ "\nBracketStack size: " + bracketStack.size());
 		}
 			
-		assert bracketStack.peek() == 0 : "Some function got more '{' than '}'";
-		assert ifdefStack.size() == 0 : "Some Ifdef does not get closed properly";
+		if(bracketStack.peek() != 0) throw new ParserException("Some function does not get closed properly. BracketStack size: " + bracketStack.size());
+		if(ifdefStack.size() != 0) throw new ParserException("Some Ifdef does not get closed properly. BracketStack size: " + bracketStack.size());
 		functionsToAnalyse.forEach(f -> f.setEnd(lastBracket));
 		functions.addAll(functionsToAnalyse);
 		functionsToAnalyse.clear();
 	}
-	
-	public Map<String, List<FunctionData>> analyse() throws LexerException {
-		determineRanges();
-		
+
+	private void analyseRanges() {	
 		for(FunctionDefinition f : functions) {
-			if(analysedFunctions.get(f.getName()) == null) {
-				analysedFunctions.put(f.getName(), new ArrayList<FunctionData>());
+			if(tempAnalysedFunctions.get(f.getName()) == null) { //TODO extract this
+				tempAnalysedFunctions.put(f.getName(), new ArrayList<FunctionData>());
 			}
 			
 			List<Ifdef> posIfdef = new ArrayList<Ifdef>();
@@ -208,13 +210,69 @@ public class Parser {
 				}
 			}
 			
-			analysedFunctions.get(f.getName()).add(new FunctionData(f, file, posIfdef, negIfdef));
+			tempAnalysedFunctions.get(f.getName()).add(new FunctionData(f, file, posIfdef, negIfdef));
 		}
-		return analysedFunctions;
 	}
 	
-
+	public void analyse() {
+		try {
+			this.parse();
+			this.determineRanges();
+			this.analyseRanges();
+		}
+		catch(LexerException le) {
+			System.err.println("Failed to lexically analyse file " + file.getAbsolutePath());
+			System.err.println("Please analyse it by hand");
+			le.printStackTrace();
+		}
+		catch(ParserException pe) {
+			this.overestimate();
+			System.err.println("Failed to parse file " + file.getAbsolutePath());
+			System.err.println("Overestimation: All ifdefs will be added.");
+			pe.printStackTrace();
+		}
+		
+		catch(Exception e) {
+			System.err.println("Failed in file " + file.getAbsolutePath());
+			System.err.println("Something unexpected happened.");
+			e.printStackTrace();
+		}
+		
+		this.addTempToDatabase();
+	}
 	
+	private void overestimate() {
+		functions.clear();
+		ifdefs.clear();
+		
+		occurances.stream()
+			.filter(o -> isIfdef(o))
+			.map(o -> new Ifdef(o.getContent().get(2).getContent()))
+			.forEach(i -> ifdefs.add(i));
+		
+		occurances.stream()
+			.filter(o -> FunctionDefinitionPattern.class.isInstance(o))
+			.map(o -> new FunctionDefinition(o.getContent().get(0).getContent(), ifdefs))
+			.forEach(f -> functions.add(f));
+	}
+	
+	private boolean isIfdef(PatternOccurance o) {
+		return CppIfdefPattern.class.isInstance(o) || CppIfndefPattern.class.isInstance(o) || CppIfDefinedPattern.class.isInstance(o);
+	}
+
+	private void addTempToDatabase() {
+		for(Entry<String, List<FunctionData>> e: tempAnalysedFunctions.entrySet()) {
+			String name = e.getKey();
+			List<FunctionData> newData = e.getValue();
+			List<FunctionData> data = analysedFunctions.get(name);
+			if(data == null) 
+				analysedFunctions.put(name, newData);	
+			else 
+				data.addAll(newData);
+		}
+		
+	}
+
 	private void handleFunctionDefinitionPattern(PatternOccurance po) {
 		if(bracketStack.stream().reduce((a,b) -> a | b).get() == 0) {
 			functionsToAnalyse.forEach(f -> f.setEnd(lastBracket));
@@ -260,8 +318,8 @@ public class Parser {
 		}
 	}
 	
-	private void handleElifPattern(PatternOccurance po) {
-		handleElsePattern(po);
+	private void handleElifPattern(PatternOccurance po) { //FIXME creates inconsistency
+		handleEndifPattern(po);
 		handleIfDefinedPattern(po);
 	}
 
@@ -269,7 +327,7 @@ public class Parser {
 		ifdefStack.peek().setEndLine(po.getEndLine());
 		ifdefs.add(ifdefStack.pop());
 		bracketStack.pop(); //no difference to popAndChangeTop(bracket) noticed
-		//popAndChangeTop(bracket); //TODO check difference
+		//popAndChangeTop(bracket); //PRECARIOUS check difference to bracketStack.pop()
 	}
 	
 	public void handleOpenCurlyBracketPattern(PatternOccurance po) {
@@ -281,9 +339,5 @@ public class Parser {
 		lastBracket = po.getEndLine();
 	}
 	
-	public void handleNothing(PatternOccurance po) {}
-
-	public void throwException(PatternOccurance po) {
-		throw new RuntimeException("Cant handle " + po);
-	}
+	//public void handleNothing(PatternOccurance po) {}
 }
