@@ -141,14 +141,17 @@ public class Parser {
 		this.nextToken();
 		
 		while(lookahead.getType() != TokenType.EOF) {
-			for(PatternMatcher m : matchers) 
- 				this.occurances.addAll(m.match(lookahead));
+			matchPatterns();
 			
 			this.nextToken();
 		}
 		
 		//ifdefStack.peek().setEndLine(lineCounter);  // only used if cfile ifdef is used
 		
+		matchPatterns();
+	}
+
+	private void matchPatterns() {
 		for(PatternMatcher m : matchers) 
 			this.occurances.addAll(m.match(lookahead));
 	}

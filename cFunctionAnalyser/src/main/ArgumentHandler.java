@@ -34,7 +34,7 @@ public class ArgumentHandler {
 		input.setRequired(false);
 		options.addOption(input);
 		
-		Option database = new Option("b", "database", true, "database file");
+		Option database = new Option("d", "database", true, "database file");
 		database.setRequired(false);
 		options.addOption(database);
 		
@@ -46,7 +46,7 @@ public class ArgumentHandler {
 		ifdef.setRequired(false);
 		options.addOption(ifdef);
 		
-		Option debug = new Option("d", "debug", true, "debug options (h for help)");
+		Option debug = new Option("D", "debug", true, "debug options (h for help)");
 		debug.setRequired(false);
 		options.addOption(debug);
 		
@@ -62,6 +62,10 @@ public class ArgumentHandler {
 		Option verbose = new Option("v", "verbose", false, "prints which file is currently processed");
 		verbose.setRequired(false);
 		options.addOption(verbose);
+		
+		Option print = new Option("p", "print", true, "prints all function names in database into given file");
+		print.setRequired(false);
+		options.addOption(print);
 	
 	
 		CommandLineParser parser = new DefaultParser();
@@ -115,5 +119,6 @@ public class ArgumentHandler {
 		System.out.println("-n: show all functions names defined");
 		System.out.println("-f: show all functions");
 		System.out.println("-i: show all ifdef directives");
+		System.out.println("-d: show all functions in database");
 	}
 }

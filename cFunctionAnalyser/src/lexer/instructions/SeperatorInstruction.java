@@ -17,6 +17,6 @@ public class SeperatorInstruction extends LexerInstruction {
 
 	@Override
 	public Token getToken() throws LexerException {
-		return getNewToken(TokenType.SEPERATOR);
+		return getNewToken(TokenType.SEPARATOR);
 	}
 }

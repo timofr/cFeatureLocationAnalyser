@@ -12,11 +12,12 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.TreeMap;
+import java.util.TreeSet;
 import java.util.stream.Collectors;
 
 import parser.FunctionData;
@@ -45,11 +46,7 @@ public class DatabaseHandler {
 	}
 	
 	public void initDatabase(File file) {
-		if(file == null) {
-			initDatabase();
-			return;
-		}
-		readDatabase(file);
+		readDatabase(file == null ? standardDatabaseFile : file);
 	} 
 	
 	@SuppressWarnings("unchecked")
@@ -57,7 +54,6 @@ public class DatabaseHandler {
 		
 		try (ObjectInputStream ois = new ObjectInputStream(new FileInputStream(databaseFile))) {
 			database = (TreeMap<String, List<FunctionData>>) ois.readObject();
-			ois.close();
 		} catch (IOException ioe) {
 			ioe.printStackTrace();
 		} catch (ClassNotFoundException c) {
@@ -103,8 +99,8 @@ public class DatabaseHandler {
 		try(BufferedReader br = new BufferedReader(new FileReader(calledFunctionsFile));
 				BufferedWriter bw = new BufferedWriter(new FileWriter(ifdefFile))) {
 			
-		    List<String> calledFunctions = new ArrayList<String>();
-		    List<String> ifdefsToEnable = new ArrayList<String>();
+		    Set<String> calledFunctions = new TreeSet<String>();
+		    Set<String> ifdefsToEnable = new TreeSet<String>();
 		    
 		    String line = br.readLine();
 
@@ -121,15 +117,16 @@ public class DatabaseHandler {
 		    	else {
 		    		functionDataList.stream()
 		    			//.filter(d -> d.getnIfdef().isEmpty())
-		    			.forEach(d -> ifdefsToEnable.addAll(d.getpIfdef().stream().map(i -> i.getName()).collect(Collectors.toList())));
+		    			.forEach(d -> ifdefsToEnable.addAll(d.getpIfdef().stream().map(i -> i.getName()).collect(Collectors.toSet())));
 		    	}
 		    }
 		    
-		    List<String> illegalIfdefs = illegalSingleIfdefStrings.stream().filter(s -> ifdefsToEnable.contains(s)).collect(Collectors.toList());
-		    if(!illegalIfdefs.isEmpty()) {
-		    	System.err.println("Found non-single ifdefs to enable");
-		    	illegalIfdefs.forEach(i -> System.err.println(i));
-		    }	
+		    //TODO check illegalIfdef implementation
+//		    List<String> illegalIfdefs = illegalSingleIfdefStrings.stream().filter(s -> ifdefsToEnable.contains(s)).collect(Collectors.toList());
+//		    if(!illegalIfdefs.isEmpty()) {
+//		    	System.err.println("Found non-single ifdefs to enable");
+//		    	illegalIfdefs.forEach(i -> System.err.println(i));
+//		    }	
 		    
 		    writeStringList(ifdefsToEnable, bw);
 		    System.out.println("Ifdef values are saved in " + ifdefFile.getAbsolutePath());
@@ -138,17 +135,50 @@ public class DatabaseHandler {
 		}
 	}
 	
-	private void writeStringList(List<String> los, BufferedWriter writer) throws IOException {
-		if(los.isEmpty())
+	private void writeStringList(Set<String> sos, BufferedWriter writer) throws IOException {
+		if(sos.isEmpty())
 			return;
 		
-		for(String s : los) {
+		for(String s : sos) {
 			writer.write(s);
 			writer.newLine();
 		}
 	}
 	
-	public void printFunctionNames() {
-		database.keySet().forEach(s -> System.out.println(s));
+	private boolean test(String s) {
+		for (int i = 0; i < s.length(); i++) {
+			char c = s.charAt(i); 
+	        if (!('A'<=c && c<='Z' || c == '_' || 'a'<=c && c<='z' || '0' <= c && c <= '9')) {
+	            return false;
+	        }
+	    }
+		return true;
+	}
+	
+	public void printFunctionNames(File file) {//TODO fix this again
+		
+		
+		try(BufferedWriter bw = new BufferedWriter(new FileWriter(file))) {
+			database.entrySet().stream().forEach(e -> e.getValue().forEach(l -> l.getFunction().getIfdef().stream().filter(i -> !test(i.getName())).forEach(i ->
+			{
+				try {
+				bw.write(i.getName());
+
+					bw.newLine();
+				} catch (IOException e1) {
+					// TODO Auto-generated catch block
+					e1.printStackTrace();
+				}
+			})));
+//			for(String s : database.keySet()) {
+//				bw.write(s);
+//				bw.newLine();
+//			}
+		} catch (IOException e) {
+			System.err.println("Failed to print database funtion names into file " + file.getAbsolutePath());
+			e.printStackTrace();
+		}
+			
+		
 	}
 }

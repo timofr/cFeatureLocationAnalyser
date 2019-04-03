@@ -4,6 +4,7 @@ import java.util.LinkedList;
 import java.util.List;
 
 import lexer.Token;
+import parser.pattern.AcquiresMacroPattern;
 import parser.pattern.CloseCurlyBracketPattern;
 import parser.pattern.CppDefinePattern;
 import parser.pattern.CppElifPattern;
@@ -15,6 +16,7 @@ import parser.pattern.CppIfndefPattern;
 import parser.pattern.FunctionDefinitionPattern;
 import parser.pattern.OpenCurlyBracketPattern;
 import parser.pattern.Pattern;
+import parser.pattern.ReleasesMacroPattern;
 
 public class PatternMatcher {
 
@@ -59,6 +61,14 @@ public class PatternMatcher {
 	
 	public static PatternMatcher getCloseCurlyBracketPatternMatcher() {
 		return new PatternMatcher(CloseCurlyBracketPattern.getInstance());
+	}
+	
+	public static PatternMatcher getAcquiresMacroPatternMatcher() {
+		return new PatternMatcher(AcquiresMacroPattern.getInstance());
+	}
+	
+	public static PatternMatcher getReleasesMacroPatternMatcher() {
+		return new PatternMatcher(ReleasesMacroPattern.getInstance());
 	}
 	
 	Pattern pattern;

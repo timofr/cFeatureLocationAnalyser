@@ -8,7 +8,7 @@ public class Token {
 		IDENTIFIER,
 		DECIMAL,
 		OPERATOR,
-		SEPERATOR,
+		SEPARATOR,
 		NEWLINE,
 		STRING,
 		CPP,

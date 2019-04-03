@@ -15,7 +15,7 @@ public class OpenCurlyBracketPattern extends SingleTokenPattern {
 
 	@Override
 	public boolean match(Token lookahead) {
-		return lookahead.getType() == TokenType.SEPERATOR && lookahead.getContent().equals("{");
+		return lookahead.getType() == TokenType.SEPARATOR && lookahead.getContent().equals("{");
 	}
 
 	

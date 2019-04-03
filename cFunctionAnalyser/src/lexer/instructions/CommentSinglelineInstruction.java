@@ -4,7 +4,6 @@ import lexer.CharMatcher;
 import lexer.Lexer;
 import lexer.LexerException;
 import lexer.Token;
-import lexer.Token.TokenType;
 
 public class CommentSinglelineInstruction extends LexerInstruction {
 	private static final CharMatcher SLASH_MATCHER = new CharMatcher('/');
@@ -23,7 +22,7 @@ public class CommentSinglelineInstruction extends LexerInstruction {
 
 	@Override
 	public Token getToken() throws LexerException {
-		return getNewToken(TokenType.COMMENT);
+		return null;//getNewToken(TokenType.COMMENT);
 	}
 
 }

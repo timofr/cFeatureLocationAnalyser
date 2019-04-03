@@ -42,8 +42,15 @@ public class Main {
 			ifdef = new File(filename);
 		}
 		
+		filename = cmd.getOptionValue("print");
+		File print = null;
+		if (filename != null) {
+			print = new File(filename);
+		}
+		
 		String[] extensions = cmd.getOptionValues("extensions");
 		boolean verbose = cmd.hasOption("verbose");
+		
 		
 		DatabaseHandler databaseHandler = DatabaseHandler.getInstance();
 		
@@ -77,12 +84,16 @@ public class Main {
 			}
 			databaseHandler.writeDatabase(database);
 		}
-		else {
+		else if(functions != null || print != null) {
 			databaseHandler.initDatabase(database);
 		}
 		
 		if(functions != null) {
 			databaseHandler.produceIfdefFile(functions, ifdef);
+		}
+		
+		if(print != null) {
+			databaseHandler.printFunctionNames(print);
 		}
 	}
 	
