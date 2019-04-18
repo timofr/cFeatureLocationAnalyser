@@ -46,9 +46,8 @@ public abstract class LexerInstruction {
 		this.includeEnd = includeEnd;
 	}
 
-	public void provideLookAhead(Lexer provider) {
-		assert this.lookaheadProvider == null : "Lookahead provider set twice!";
-		this.lookaheadProvider = provider;
+	public void setLookaheadProvider(Lexer lookaheadProvider) {
+		this.lookaheadProvider = lookaheadProvider;
 	}
 
 	protected char lookAhead(int distance) {

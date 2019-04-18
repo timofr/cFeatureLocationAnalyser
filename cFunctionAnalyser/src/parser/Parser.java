@@ -2,8 +2,10 @@ package parser;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.EmptyStackException;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -19,12 +21,14 @@ import lexer.Token;
 import lexer.Token.TokenType;
 import main.DatabaseHandler;
 import parser.pattern.CloseCurlyBracketPattern;
+import parser.pattern.CppDefinePattern;
 import parser.pattern.CppElifPattern;
 import parser.pattern.CppElsePattern;
 import parser.pattern.CppEndifPattern;
 import parser.pattern.CppIfDefinedPattern;
 import parser.pattern.CppIfdefPattern;
 import parser.pattern.CppIfndefPattern;
+import parser.pattern.CppUndefinePattern;
 import parser.pattern.FunctionDefinitionPattern;
 import parser.pattern.OpenCurlyBracketPattern;
 import parser.pattern.Pattern;
@@ -49,14 +53,19 @@ public class Parser {
 	private List<Ifdef> ifdefs = new ArrayList<Ifdef>();
 	
 	private Map<String, List<FunctionData>> tempAnalysedFunctions = new HashMap<String, List<FunctionData>>();
+	private Map<String, List<FunctionData>> analysedFunctions = DatabaseHandler.getInstance().getAnalysedFunctions();
 	
-	private Map<String, List<FunctionData>> analysedFunctions = DatabaseHandler.getInstance().getDatabase();
-
+	private Map<String, Set<String>> tempTransitiveDefine = new HashMap<String, Set<String>>();
+	private Map<String, Set<String>> tempTransitiveUndefine = new HashMap<String, Set<String>>();
+	
+	private Map<String, Set<String>> transitiveDefine = DatabaseHandler.getInstance().getTransitiveDefine();
+	private Map<String, Set<String>> transitiveUndefine = DatabaseHandler.getInstance().getTransitiveUndefine();
 	
 	private List<FunctionDefinition> functionsToAnalyse = new ArrayList<FunctionDefinition>();
 	private Stack<Ifdef> ifdefStack = new Stack<Ifdef>();
 	private Stack<Integer> bracketStack = new Stack<Integer>();
-
+	private int lastBracket = 0;
+	
 	public Parser(Lexer lexer) {
 		this.lexer = lexer;
 		this.file = lexer.getFile();
@@ -88,7 +97,8 @@ public class Parser {
 		
 		bracketStack.push(0);
 		
-//		this.matchers.add(PatternMatcher.getCppDefinePatternMatcher());
+		this.matchers.add(PatternMatcher.getCppDefinePatternMatcher());
+		this.matchers.add(PatternMatcher.getCppUndefinePatternMatcher());
 		this.matchers.add(PatternMatcher.getCppIfdefPatternMatcher());
 		this.matchers.add(PatternMatcher.getCppIfDefinedPatternMatcher());
 		this.matchers.add(PatternMatcher.getCppIfndefPatternMatcher());
@@ -106,7 +116,8 @@ public class Parser {
 		this.handlePattern.put(OpenCurlyBracketPattern.class, this::handleOpenCurlyBracketPattern);
 		this.handlePattern.put(CloseCurlyBracketPattern.class, this::handleCloseCurlyBracketPattern);
 		this.handlePattern.put(FunctionDefinitionPattern.class, this::handleFunctionDefinitionPattern);
-//		this.handlePattern.put(CppDefinePattern.class, this::handleNothing);
+		this.handlePattern.put(CppDefinePattern.class, this::handleDefinePattern);
+		this.handlePattern.put(CppUndefinePattern.class, this::handleUndefinePattern);
 		this.handlePattern.put(CppElifPattern.class, this::handleElifPattern);
 		this.handlePattern.put(CppIfndefPattern.class, this::handleIfndefPattern); 
 	}
@@ -140,7 +151,7 @@ public class Parser {
 	public void parse() throws LexerException {
 		this.nextToken();
 		
-		while(lookahead.getType() != TokenType.EOF) {
+		while(lexer.hasNext()) {
 			matchPatterns();
 			
 			this.nextToken();
@@ -155,8 +166,6 @@ public class Parser {
 		for(PatternMatcher m : matchers) 
 			this.occurances.addAll(m.match(lookahead));
 	}
-	
-	private int lastBracket = 0; //avoid inner class access error
 	
 	public void determineRanges() throws ParserException {
 		try {
@@ -241,7 +250,9 @@ public class Parser {
 			e.printStackTrace();
 		}
 		
-		this.addTempToDatabase();
+		this.addTempToDatabase(tempAnalysedFunctions, analysedFunctions);
+		this.addTempToDatabase(tempTransitiveDefine, transitiveDefine);
+		this.addTempToDatabase(tempTransitiveUndefine, transitiveUndefine);
 	}
 	
 	private void overestimate() {
@@ -251,7 +262,7 @@ public class Parser {
 		occurances.stream()
 			.filter(o -> isIfdef(o))
 			.map(o -> new Ifdef(o.getContent().get(2).getContent()))
-			.forEach(i -> ifdefs.add(i));
+			.forEach(i -> ifdefs.add(i)); //FIXME does not work for if and elif
 		
 		occurances.stream()
 			.filter(o -> FunctionDefinitionPattern.class.isInstance(o))
@@ -260,21 +271,36 @@ public class Parser {
 	}
 	
 	private boolean isIfdef(PatternOccurance o) {
-		return CppIfdefPattern.class.isInstance(o) || CppIfndefPattern.class.isInstance(o) || CppIfDefinedPattern.class.isInstance(o);
+		return CppIfdefPattern.class.isInstance(o) || CppIfndefPattern.class.isInstance(o)
+				|| CppIfDefinedPattern.class.isInstance(o) || CppElifPattern.class.isInstance(o);
 	}
 
-	private void addTempToDatabase() {
-		for(Entry<String, List<FunctionData>> e: tempAnalysedFunctions.entrySet()) {
+	private <T> void addTempToDatabase(Map<String, ? extends Collection<T>> temp, Map<String, ? extends Collection<T>> database) {
+		for(Entry<String, ? extends Collection<T>> e: temp.entrySet()) {
 			String name = e.getKey();
-			List<FunctionData> newData = e.getValue();
-			List<FunctionData> data = analysedFunctions.get(name);
+			Collection<T> newData = e.getValue();
+			Collection<T> data = database.get(name);
+			Map<String, Collection<T>> databaseNew  = (Map<String, Collection<T>>) database; 
 			if(data == null) 
-				analysedFunctions.put(name, newData);	
+				databaseNew.put(name, newData);	
 			else 
 				data.addAll(newData);
 		}
 		
 	}
+	
+//	private void <T, V> addTempToDatabase(Map<T, V> temp, Map<T, V> database) {
+//		for(Entry<String, List<FunctionData>> e: tempAnalysedFunctions.entrySet()) {
+//			String name = e.getKey();
+//			List<FunctionData> newData = e.getValue();
+//			List<FunctionData> data = analysedFunctions.get(name);
+//			if(data == null) 
+//				analysedFunctions.put(name, newData);	
+//			else 
+//				data.addAll(newData);
+//		}
+//		
+//	}
 
 	private void handleFunctionDefinitionPattern(PatternOccurance po) {
 		if(bracketStack.stream().reduce((a,b) -> a | b).get() == 0) {
@@ -333,13 +359,40 @@ public class Parser {
 		//popAndChangeTop(bracket); //PRECARIOUS check difference to bracketStack.pop()
 	}
 	
-	public void handleOpenCurlyBracketPattern(PatternOccurance po) {
+	private void handleOpenCurlyBracketPattern(PatternOccurance po) {
 		changeTopOfStack(bracketStack, true);
 	}
 	
-	public void handleCloseCurlyBracketPattern(PatternOccurance po) {
+	private void handleCloseCurlyBracketPattern(PatternOccurance po) {
 		changeTopOfStack(bracketStack, false);
 		lastBracket = po.getEndLine();
+	}
+	
+	private void handleDefinePattern(PatternOccurance po) {
+		String s = po.getContent().get(2).getContent();
+		ifdefStack.forEach(i -> {
+			i.addDefine(s);
+			Set<String> set = tempTransitiveDefine.get(s);
+			if(set == null) {
+				set = new HashSet<String>();
+				tempTransitiveDefine.put(s, set);
+			}
+			set.add(i.getName());
+		});
+		
+	}
+	
+	private void handleUndefinePattern(PatternOccurance po) {
+		String s = po.getContent().get(2).getContent();
+		ifdefStack.forEach(i -> {
+			i.addUndefine(s);
+			Set<String> set = tempTransitiveDefine.get(s);
+			if(set == null) {
+				set = new HashSet<String>();
+				tempTransitiveUndefine.put(s, set);
+			}
+			set.add(i.getName());
+		});
 	}
 	
 	//public void handleNothing(PatternOccurance po) {}

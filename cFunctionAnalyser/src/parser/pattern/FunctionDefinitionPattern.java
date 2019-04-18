@@ -33,12 +33,11 @@ public class FunctionDefinitionPattern extends Pattern {
 		PatternMatcher defineMatcher = PatternMatcher.getCppDefinePatternMatcher();
 		boolean define = content.stream().anyMatch(t -> !defineMatcher.match(t).isEmpty());
 		
-		//
 		//performance boost
 		if(lookahead.getContent().equals(";")
 				|| define
 				|| 10 < content.stream().filter(t -> t.getType() == TokenType.NEWLINE).count())
-			//PRECARIOUS limits the function defintion pattern to 5 lines
+			//PRECARIOUS limits the function defintion pattern to 10 lines
 			throw new UnexpectedTokenException(); //performance boost
 		
 		if (content.size() == 1) {
@@ -71,7 +70,7 @@ public class FunctionDefinitionPattern extends Pattern {
 				long parametersFinished = 0;
 				
 				List<PatternMatcher> matchers = Arrays.asList(PatternMatcher.getAcquiresMacroPatternMatcher(),
-						PatternMatcher.getReleasesMacroPatternMatcher());
+						PatternMatcher.getReleasesMacroPatternMatcher()); //TODO add other cpp pattern
 				List<PatternOccurance> internOccurances = new ArrayList<PatternOccurance>();
 				
 				

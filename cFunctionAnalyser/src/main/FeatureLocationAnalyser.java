@@ -8,7 +8,7 @@ import java.io.IOException;
 import lexer.Lexer;
 import parser.Parser;
 
-public class FunctionAnalyser {
+public class FeatureLocationAnalyser {
 
 	
 	public static PrinterData anaylse(File file) {

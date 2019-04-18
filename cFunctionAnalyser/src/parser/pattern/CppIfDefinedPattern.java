@@ -27,8 +27,16 @@ public class CppIfDefinedPattern extends CppPattern {
 			}
 		}
 		else {
-			if(lookahead.getType() == TokenType.NEWLINE)
+			if(lookahead.getType() == TokenType.NEWLINE) {
+				int last = content.size() - 1;
+				if(content.get(content.size() - 1).getContent().equals("/")) {
+					content.remove(last);
+					return false;
+				}
 				return true;
+			}
+				
+				
 			content.add(lookahead);
 			return false;
 		}

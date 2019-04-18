@@ -1,6 +1,8 @@
 package parser;
 
 import java.io.Serializable;
+import java.util.HashSet;
+import java.util.Set;
 
 public class Ifdef implements Serializable{
 	
@@ -12,6 +14,8 @@ public class Ifdef implements Serializable{
 	private int startLine;
 	private int elseLine;
 	private int endLine;
+	private Set<String> define = new HashSet<String>();
+	private Set<String> undefine = new HashSet<String>();
 	
 	public Ifdef(String name) {
 		this.name = name;
@@ -72,8 +76,6 @@ public class Ifdef implements Serializable{
 	public void setEndLine(int endLine) {
 		this.endLine = endLine;
 	}
-
-
 	
 	public String getName() {
 		return name;
@@ -86,6 +88,14 @@ public class Ifdef implements Serializable{
 	}
 	public void setIfdef(boolean ifdef) {
 		this.ifdef = ifdef;
+	}
+	
+	public void addDefine(String s) {
+		define.add(s);
+	}
+	
+	public void addUndefine(String s) {
+		undefine.add(s);
 	}
 	
 	public String rangeToString() {

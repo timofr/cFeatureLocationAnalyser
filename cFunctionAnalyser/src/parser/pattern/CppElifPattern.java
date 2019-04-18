@@ -7,7 +7,7 @@ import lexer.Token.TokenType;
 import parser.PatternOccurance;
 import parser.UnexpectedTokenException;
 
-public class CppElifPattern extends CppPattern{
+public class CppElifPattern extends CppPattern {
 
 	private static Pattern pattern;
 	
@@ -22,14 +22,22 @@ public class CppElifPattern extends CppPattern{
 	public boolean process(PatternOccurance occurance, Token lookahead) throws UnexpectedTokenException {
 		List<Token> content = occurance.getContent();
 		if(content.size() == 1) {
-			if(lookahead.getType() == TokenType.IDENTIFIER && lookahead.getContent().equals("elif")) {
+			if(lookahead.getType() == TokenType.KEYWORD && lookahead.getContent().equals("elif")) {
 				content.add(lookahead);
 				return false;
 			}
 		}
 		else {
-			if(lookahead.getType() == TokenType.NEWLINE)
+			if(lookahead.getType() == TokenType.NEWLINE) {
+				int last = content.size() - 1;
+				if(content.get(content.size() - 1).getContent().equals("/")) {
+					content.remove(last);
+					return false;
+				}
 				return true;
+			}
+				
+				
 			content.add(lookahead);
 			return false;
 		}

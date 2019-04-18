@@ -1,8 +1,10 @@
 package lexer;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Set;
 
 import lexer.Token.TokenType;
@@ -28,8 +30,8 @@ public class Lexer {
 	private String input;
 	private int position;
 	
-	private boolean commentBlock = false;
-	private boolean commentLine = false;
+	//private boolean commentBlock = false;
+	//private boolean commentLine = false;
 	private int line = 1;
 	
 	private final Set<LexerInstruction> instructions = new LinkedHashSet<>();
@@ -42,6 +44,16 @@ public class Lexer {
 		this.input = input;
 		this.position = 0;
 	}
+	
+	public List<Token> getTokens() throws LexerException {
+		List<Token> tokens = new ArrayList<Token>();
+		
+		while(hasNext()) {
+			tokens.add(nextToken());
+		}
+		return tokens;
+	}
+	
 	
 	private void initialize() {
 		usedInstructionSet = instructions;
@@ -79,7 +91,7 @@ public class Lexer {
 		this.instructions.add(instr);
 		
 		//Some instructions need to access some lookahead char
-		instr.provideLookAhead(this);
+		instr.setLookaheadProvider(this);
 	}
 	
 	private void addInstructions(LexerInstruction... instrs) {
@@ -134,9 +146,9 @@ public class Lexer {
 
 		//If no instruction can handle this char it is illegal
 		if (instr == null) {
-			if(!commentBlock && !commentLine) {
-				System.err.println("Lexer cannot handle char " + this.getLookahead() + " in line " + line + " in file " + file);
-			}
+			//if(!commentBlock && !commentLine) {
+			System.err.println("Lexer cannot handle char " + this.getLookahead() + " in line " + line + " in file " + file);
+			//}
 			this.consume();
 			return null;
 		}

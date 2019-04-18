@@ -1,6 +1,9 @@
 package main;
 
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileReader;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -10,9 +13,19 @@ import java.util.stream.Collectors;
 
 import org.apache.commons.cli.CommandLine;
 
+import lexer.Lexer;
+import lexer.LexerException;
+import lexer.Token;
+import lexer.Token.TokenType;
+import parser.expressions.ExpressionParser;
+import parser.expressions.ExpressionParserException;
+import parser.expressions.SimpleToken;
+
 
 
 public class Main {
+	public static final String name = "cFeatureLocationAnalyser";
+	
 	public static void main(String[] args) {
 		Set<String> extensionsSet;
 		CommandLine cmd = ArgumentHandler.readArgs(args);
@@ -30,27 +43,22 @@ public class Main {
 			database = new File(filename);
 		}
 		
-		filename = cmd.getOptionValue("functions");
-		File functions = null;
+		filename = cmd.getOptionValue("input");
+		File input = null;
 		if (filename != null) {
-			functions = new File(filename);
+			input = new File(filename);
 		}
 		
-		filename = cmd.getOptionValue("ifdef");
-		File ifdef = null;
+		filename = cmd.getOptionValue("output");
+		File output = null;
 		if (filename != null) {
-			ifdef = new File(filename);
+			output = new File(filename);
 		}
 		
-		filename = cmd.getOptionValue("print");
-		File print = null;
-		if (filename != null) {
-			print = new File(filename);
-		}
+		String print = cmd.getOptionValue("print");
 		
 		String[] extensions = cmd.getOptionValues("extensions");
 		boolean verbose = cmd.hasOption("verbose");
-		
 		
 		DatabaseHandler databaseHandler = DatabaseHandler.getInstance();
 		
@@ -76,7 +84,7 @@ public class Main {
 			for(File f : files) {
 				if(verbose)
 					System.out.println("Processing " + f.getAbsolutePath());
-				PrinterData printerData = FunctionAnalyser.anaylse(f);
+				PrinterData printerData = FeatureLocationAnalyser.anaylse(f);
 				if(printerData != null)
 					ArgumentHandler.debug(cmd.getOptionValue("debug"), printerData);
 				
@@ -84,16 +92,45 @@ public class Main {
 			}
 			databaseHandler.writeDatabase(database);
 		}
-		else if(functions != null || print != null) {
+		else if(print != null) {
 			databaseHandler.initDatabase(database);
 		}
 		
-		if(functions != null) {
-			databaseHandler.produceIfdefFile(functions, ifdef);
-		}
-		
 		if(print != null) {
-			databaseHandler.printFunctionNames(print);
+			if(print.equals("o")) {
+				if(input == null ) {
+					System.out.println("Option o requires an input file");
+					System.exit(0);
+				}
+				databaseHandler.produceIfdefFile(input, output);
+			}
+			else if(print.equals("d")) {
+				databaseHandler.printAllIfdefs(output);
+			}
+			else if(print.equals("f")) {
+				databaseHandler.printAllFunctionNames(output);
+			}
+			else if(print.equals("daf")) {
+				if(input == null ) {
+					System.out.println("Option daf requires an input file");
+					System.exit(0);
+				}
+				databaseHandler.printIfdefsDependingOnFunctions(input, output);
+			}
+			else if(print.equals("fdd")) {
+				if(input == null ) {
+					System.out.println("Option fdd requires an input file");
+					System.exit(0);
+				}
+				databaseHandler.printFunctionsDependingOnIfdefs(input, output);
+			}
+			else if(print.equals("dad")) {
+				if(input == null ) {
+					System.out.println("Option fdd requires an input file");
+					System.exit(0);
+				}
+				databaseHandler.printDirectivesDependingOnDirectives(input, output);
+			}
 		}
 	}
 	

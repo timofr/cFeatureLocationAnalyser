@@ -38,11 +38,11 @@ public class ArgumentHandler {
 		database.setRequired(false);
 		options.addOption(database);
 		
-		Option functions = new Option("f", "functions", true, "function name file");
+		Option functions = new Option("i", "input", true, "input file (inlcuding function names or macro names depending on -p options)");
 		functions.setRequired(false);
 		options.addOption(functions);
 		
-		Option ifdef = new Option("i", "ifdef", true, "ifdef file");
+		Option ifdef = new Option("o", "output", true, "output file");
 		ifdef.setRequired(false);
 		options.addOption(ifdef);
 		
@@ -63,7 +63,9 @@ public class ArgumentHandler {
 		verbose.setRequired(false);
 		options.addOption(verbose);
 		
-		Option print = new Option("p", "print", true, "prints all function names in database into given file");
+		Option print = new Option("p", "print", true, "prints the given option to output file\n"
+				+ "Options: fdd (functions depending on directives), daf (directives affecting functions), dad (directive affecting directives), f (functions), d (directives),o (optimize)\n"
+				+ "Options fdd, daf, dad, and o requiere an input file because their output depends on the given input");
 		print.setRequired(false);
 		options.addOption(print);
 	
@@ -73,19 +75,19 @@ public class ArgumentHandler {
 		CommandLine cmd = null;
 
 		if(args.length == 0)
-			formatter.printHelp("java -jar cFunctionAnalyser [options]", options);
+			formatter.printHelp("java -jar " + Main.name + " [options]", options);
 		
 		try {
 			cmd = parser.parse(options, args);
 		} catch (ParseException e) {
 			System.out.println(e.getMessage());
-			formatter.printHelp("java -jar cFunctionAnalyser [options]", options);
+			formatter.printHelp("java -jar " + Main.name + " [options]", options);
 
 			System.exit(1);
 		}
 		
 		if(cmd.hasOption("help")) {
-			formatter.printHelp("java -jar cFunctionAnalyser [options]", options);
+			formatter.printHelp("java -jar " + Main.name + " [options]", options);
 			printDebugHelp();
 		}
 		
@@ -112,13 +114,13 @@ public class ArgumentHandler {
 	}
 	
 	public static void printDebugHelp() {
-		System.out.println("Debug usage: java -jar cFunctionAnalyser -d [a,p,o,n,f,i]");
-		System.out.println("-a: show analysed functions with all ifdefs");
-		System.out.println("-p: show analysed functions with positive ifdefs");
-		System.out.println("-o: show all pattern occurances defined");
-		System.out.println("-n: show all functions names defined");
-		System.out.println("-f: show all functions");
-		System.out.println("-i: show all ifdef directives");
-		System.out.println("-d: show all functions in database");
+		System.out.println("Debug usage: java -jar " + Main.name + " -d [a,p,o,n,f,i]");
+		System.out.println("a: show analysed functions with all ifdefs");
+		System.out.println("p: show analysed functions with positive ifdefs");
+		System.out.println("o: show all pattern occurances defined");
+		System.out.println("n: show all functions names defined");
+		System.out.println("f: show all functions");
+		System.out.println("i: show all ifdef directives");
+		System.out.println("d: show all functions in database");
 	}
 }
