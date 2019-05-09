@@ -355,8 +355,8 @@ public class Parser {
 	private void handleEndifPattern(PatternOccurance po) {
 		ifdefStack.peek().setEndLine(po.getEndLine());
 		ifdefs.add(ifdefStack.pop());
-		bracketStack.pop(); //no difference to popAndChangeTop(bracket) noticed
-		//popAndChangeTop(bracket); //PRECARIOUS check difference to bracketStack.pop()
+		//bracketStack.pop(); //no difference to popAndChangeTop(bracket) noticed
+		popAndChangeTop(bracketStack); //PRECARIOUS check difference to bracketStack.pop()
 	}
 	
 	private void handleOpenCurlyBracketPattern(PatternOccurance po) {

@@ -64,7 +64,10 @@ public class ArgumentHandler {
 		options.addOption(verbose);
 		
 		Option print = new Option("p", "print", true, "prints the given option to output file\n"
-				+ "Options: fdd (functions depending on directives), daf (directives affecting functions), dad (directive affecting directives), f (functions), d (directives),o (optimize)\n"
+				+ "Options: f (functions), d (directives),o (optimize),\n"
+				+ "fdd (functions depending on directives),"
+				+ "daf (directives affecting functions),"
+				+ "dad (directive affecting directives), \n"
 				+ "Options fdd, daf, dad, and o requiere an input file because their output depends on the given input");
 		print.setRequired(false);
 		options.addOption(print);
