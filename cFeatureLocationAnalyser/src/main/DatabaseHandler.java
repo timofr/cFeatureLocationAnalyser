@@ -4,7 +4,6 @@ import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.FileWriter;
@@ -13,7 +12,6 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -21,15 +19,9 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
-import java.util.stream.Collectors;
 
-import lexer.Lexer;
-import lexer.LexerException;
-import lexer.Token;
 import parser.FunctionData;
-import parser.expressions.Expression;
 import parser.expressions.ExpressionParser;
-import parser.expressions.ExpressionParserException;
 
 public class DatabaseHandler {
 	private final File standardDatabaseFile = new File("cfa_database");
@@ -184,10 +176,10 @@ public class DatabaseHandler {
 		writeStringSet(outputFile, macros);	
 	}
 	
-	private void addFunctionDataMacrosToSet(FunctionData data, Set<String> set) {
-		data.getpIfdef().forEach(i -> set.addAll(ExpressionParser.getIdentifier(i.getName())));
-		data.getnIfdef().forEach(i -> set.addAll(ExpressionParser.getIdentifier(i.getName())));
-	}
+//	private void addFunctionDataMacrosToSet(FunctionData data, Set<String> set) {
+//		data.getpIfdef().forEach(i -> set.addAll(ExpressionParser.getIdentifier(i.getName())));
+//		data.getnIfdef().forEach(i -> set.addAll(ExpressionParser.getIdentifier(i.getName())));
+//	}
 	
 	public void printFunctionsDependingOnIfdefs(File inputFile, File outputFile) {
 		throw new RuntimeException("Currently not finished");

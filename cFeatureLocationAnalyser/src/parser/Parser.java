@@ -18,7 +18,6 @@ import java.util.stream.Collectors;
 import lexer.Lexer;
 import lexer.LexerException;
 import lexer.Token;
-import lexer.Token.TokenType;
 import main.DatabaseHandler;
 import parser.pattern.CloseCurlyBracketPattern;
 import parser.pattern.CppDefinePattern;
@@ -280,6 +279,8 @@ public class Parser {
 			String name = e.getKey();
 			Collection<T> newData = e.getValue();
 			Collection<T> data = database.get(name);
+			
+			@SuppressWarnings("unchecked")
 			Map<String, Collection<T>> databaseNew  = (Map<String, Collection<T>>) database; 
 			if(data == null) 
 				databaseNew.put(name, newData);	
